@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>    
+    <AddIn Type="Application">
+        <Name>THBIM Tools</Name>
+        <Assembly>C:\ProgramData\Autodesk\Revit\TH Tools\THBIM.dll</Assembly>
+        <AddInId>{A6B9326F-6F8E-4B66-9F51-2C8D1E8F2A3B}</AddInId>
+        <FullClassName>THBIM.App</FullClassName>
+        <VendorId>THBM</VendorId>
+        <VendorDescription>THBIM Tools</VendorDescription>
+    </AddIn>
+</RevitAddIns>

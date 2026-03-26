@@ -1,0 +1,204 @@
+﻿<Window x:Class="colorslapsher.UI.ColorSplasherWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="THBIM - Color Splasher"
+        Height="650" Width="900"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterScreen"
+        Background="#FFF9F7F0"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Primary" Color="#D9A566"/>
+        <SolidColorBrush x:Key="PrimaryDark" Color="#C68C3E"/>
+        <SolidColorBrush x:Key="TextGray" Color="#555555"/>
+        <SolidColorBrush x:Key="LightBorder" Color="#FFE6D6B8"/>
+
+        <Style x:Key="SectionCard" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LightBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#999" BlurRadius="10" ShadowDepth="2" Opacity="0.25"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderBar" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Primary}"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="CornerRadius" Value="8,8,0,0"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Background" Value="{StaticResource Primary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryDark}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimaryDark}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+            <Setter Property="Foreground" Value="#D9534F"/>
+            <Setter Property="BorderBrush" Value="#D9534F"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="350"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource SectionCard}">
+            <DockPanel>
+                <Border Style="{StaticResource HeaderBar}" DockPanel.Dock="Top">
+                    <TextBlock Text="1. Select Data" Foreground="White" FontWeight="Bold" FontSize="14"/>
+                </Border>
+
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Category:" Foreground="{StaticResource TextGray}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox Grid.Row="1" x:Name="cmbCategories" Height="30" Margin="0,0,0,15" Padding="5"
+                              SelectionChanged="cmbCategories_SelectionChanged"/>
+
+                    <ListBox Grid.Row="3" x:Name="lbParameters" Margin="0,5,0,0" BorderBrush="#DDD" BorderThickness="1"
+                             SelectionChanged="lbParameters_SelectionChanged">
+                    </ListBox>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="1" Style="{StaticResource SectionCard}">
+            <DockPanel>
+                <Border Style="{StaticResource HeaderBar}" DockPanel.Dock="Top">
+                    <Grid>
+                        <TextBlock Text="2. Manage Colors" Foreground="White" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Gradient" Style="{StaticResource SecondaryButton}" Height="24" Padding="8,0" FontSize="11" Margin="2"
+                                    Click="btnGradient_Click"/>
+                            <Button Content="Random" Style="{StaticResource SecondaryButton}" Height="24" Padding="8,0" FontSize="11" Margin="2"
+                                    Click="btnRandom_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ListBox Grid.Row="0" x:Name="lbValues" BorderBrush="#DDD" BorderThickness="1" HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Width="20" Height="20" CornerRadius="3" 
+                BorderBrush="#999" BorderThickness="1" Margin="0,0,10,0"
+                Cursor="Hand"
+                ToolTip="Click to change color"
+                Background="{Binding DisplayColorBrush}"
+                MouseLeftButtonDown="ColorBox_MouseDown"/>
+
+                                    <TextBlock Grid.Column="1" Text="{Binding ValueName}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <UniformGrid Grid.Row="1" Columns="2" Margin="0,10,0,0">
+                        <Button Content="Create Legend" Style="{StaticResource SecondaryButton}" Click="btnLegend_Click"/>
+                        <Button Content="Create View Filters" Style="{StaticResource SecondaryButton}" Click="btnCreateFilters_Click"/>
+                    </UniformGrid>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="10,0,20,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" x:Name="btnReset" Content="RESET ALL" Style="{StaticResource DangerButton}" Width="120"
+                    ToolTip="Clear all overrides in current view" Click="btnReset_Click"/>
+
+            <TextBlock Grid.Column="1" Text="Ready." VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#888" FontStyle="Italic"/>
+
+            <Button Grid.Column="2" x:Name="btnApply" Content="SET COLORS" Style="{StaticResource PrimaryButton}" Width="150"
+                    ToolTip="Apply colors to elements in view" Click="btnApply_Click"/>
+        </Grid>
+
+    </Grid>
+</Window>

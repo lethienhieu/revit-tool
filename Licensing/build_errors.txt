@@ -1,0 +1,8 @@
+﻿e:\THBIM-CODE\2025\CODE\THBIM.Licensing-2025\App.cs(92,26): error CS0234: The type or namespace name 'Windows' does not exist in the namespace 'Autodesk' (are you missing an assembly reference?) [e:\THBIM-CODE\2025\CODE\THBIM.Licensing-2025\THBIM.Licensing.csproj]
+e:\THBIM-CODE\2025\CODE\THBIM.Licensing-2025\App.cs(92,57): error CS0234: The type or namespace name 'Windows' does not exist in the namespace 'Autodesk' (are you missing an assembly reference?) [e:\THBIM-CODE\2025\CODE\THBIM.Licensing-2025\THBIM.Licensing.csproj]
+
+Build FAILED.
+    68 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:00.85

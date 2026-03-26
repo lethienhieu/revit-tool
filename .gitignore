@@ -1,0 +1,31 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.cache
+*.dll
+*.exe
+*.pdb
+
+## Keep Release DLLs tracked via git lfs or manual include if needed
+!bin/Release/
+
+## IDE
+.vs/
+.idea/
+*.swp
+*~
+
+## Build logs
+build_log*.txt
+
+## NuGet
+packages/
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
