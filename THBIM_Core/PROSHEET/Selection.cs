@@ -52,10 +52,38 @@ namespace THBIM
             else
                 await LoadSheetsAsync();
 
+            // Apply last profile SAU KHI sheets đã load xong
+            ApplyLastProfile();
+
             LoadingOverlay.Visibility = Visibility.Collapsed; // Ẩn màn hình chờ
+        }
 
+        private void ApplyLastProfile()
+        {
+            string lastProfile = LoadLastProfileName();
+            if (string.IsNullOrEmpty(lastProfile)) return;
+            if (!_profilePaths.TryGetValue(lastProfile, out string path)) return;
 
+            try
+            {
+                // Chọn tên trong combobox (suppress để không trigger SelectionChanged lần nữa)
+                _suppressProfileSelection = true;
+                foreach (System.Windows.Controls.ComboBoxItem ci in CboProfiles.Items)
+                {
+                    if (ci.Content?.ToString() == lastProfile)
+                    {
+                        CboProfiles.SelectedItem = ci;
+                        break;
+                    }
+                }
+                _suppressProfileSelection = false;
 
+                // Apply profile data
+                string content = File.ReadAllText(path);
+                var data = ParseTxtProfile(content);
+                if (data != null) ApplyTxtProfileToUI(data);
+            }
+            catch { _suppressProfileSelection = false; }
         }
 
         private string GetViewTypeName(DB.View v)

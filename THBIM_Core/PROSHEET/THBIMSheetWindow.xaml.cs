@@ -263,19 +263,6 @@ namespace THBIM
                 _suppressProfileSelection = false;
             }
 
-            // Tự chọn profile lần trước đã dùng
-            string lastProfile = LoadLastProfileName();
-            if (!string.IsNullOrEmpty(lastProfile))
-            {
-                foreach (System.Windows.Controls.ComboBoxItem ci in CboProfiles.Items)
-                {
-                    if (ci.Content?.ToString() == lastProfile)
-                    {
-                        CboProfiles.SelectedItem = ci;
-                        break;
-                    }
-                }
-            }
         }
 
         private void CboProfiles_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
