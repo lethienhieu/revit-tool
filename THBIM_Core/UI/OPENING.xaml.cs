@@ -251,7 +251,7 @@ namespace OPENING
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("OPENING", ex.Message);
+                TaskDialog.Show("THBIM Tools - OPENING", $"{ex.GetType().Name}: {ex.Message}\n\nStack:\n{ex.StackTrace}");
             }
         }
 

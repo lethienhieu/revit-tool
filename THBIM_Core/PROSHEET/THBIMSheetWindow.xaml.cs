@@ -33,6 +33,20 @@ namespace THBIM
             }
         }
 
+        private static string LastProfilePath =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "THBIM", "ProSheet", "last_profile.txt");
+
+        private static void SaveLastProfileName(string name)
+        {
+            try { File.WriteAllText(LastProfilePath, name); } catch { }
+        }
+
+        private static string LoadLastProfileName()
+        {
+            try { return File.Exists(LastProfilePath) ? File.ReadAllText(LastProfilePath).Trim() : null; } catch { return null; }
+        }
+
         public THBIMSheetWindow(DB.Document doc, ExternalEvent exEvent, RequestHandler handler)
         {
 
@@ -248,6 +262,20 @@ namespace THBIM
             {
                 _suppressProfileSelection = false;
             }
+
+            // Tự chọn profile lần trước đã dùng
+            string lastProfile = LoadLastProfileName();
+            if (!string.IsNullOrEmpty(lastProfile))
+            {
+                foreach (System.Windows.Controls.ComboBoxItem ci in CboProfiles.Items)
+                {
+                    if (ci.Content?.ToString() == lastProfile)
+                    {
+                        CboProfiles.SelectedItem = ci;
+                        break;
+                    }
+                }
+            }
         }
 
         private void CboProfiles_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -264,6 +292,9 @@ namespace THBIM
                 string content = File.ReadAllText(path);
                 var data = ParseTxtProfile(content);
                 if (data != null) ApplyTxtProfileToUI(data);
+
+                // Ghi nhớ profile vừa chọn
+                SaveLastProfileName(name);
             }
             catch (Exception ex)
             {
@@ -540,17 +571,6 @@ namespace THBIM
             // ── Selection Tab ──
             lines.Add($"Mode={((RbSheets?.IsChecked == true) ? "Sheets" : "Views")}");
 
-            // Lưu danh sách đã tick (SheetNumber|SheetName)
-            var selected = _masterList.Where(x => x.IsSelected).ToList();
-            lines.Add($"SelectedIds={string.Join("|", selected.Select(x => x.Id.GetValue()))}");
-            lines.Add($"SelectedNumbers={string.Join("|", selected.Select(x => x.SheetNumber ?? ""))}");
-            lines.Add($"SelectedNames={string.Join("|", selected.Select(x => x.SheetName ?? ""))}");
-
-            // Lưu Custom File Names (Id:CustomName)
-            var customs = _masterList.Where(x => !string.IsNullOrEmpty(x.CustomFileName))
-                .Select(x => $"{x.Id.GetValue()}:{x.CustomFileName}");
-            lines.Add($"CustomFileNames={string.Join("|", customs)}");
-
             // Lưu naming rule format string nếu có
             if (_savedNamingRules != null && _savedNamingRules.Count > 0)
             {
@@ -601,48 +621,7 @@ namespace THBIM
             if (d == null) return;
 
             // ── Selection Tab ──
-            // Khôi phục tick chọn dựa trên SheetNumber + SheetName
-            var savedNumbers = GetList(d, "SelectedNumbers");
-            var savedNames = GetList(d, "SelectedNames");
-
-            if (savedNumbers.Count > 0 || savedNames.Count > 0)
-            {
-                // Tạo HashSet để tìm nhanh
-                var numberSet = new HashSet<string>(savedNumbers, StringComparer.OrdinalIgnoreCase);
-                var nameSet = new HashSet<string>(savedNames, StringComparer.OrdinalIgnoreCase);
-
-                foreach (var item in _masterList)
-                {
-                    // Match theo SheetNumber (nếu có) hoặc SheetName
-                    bool matchByNumber = !string.IsNullOrEmpty(item.SheetNumber) && numberSet.Contains(item.SheetNumber);
-                    bool matchByName = nameSet.Contains(item.SheetName);
-                    item.IsSelected = matchByNumber || matchByName;
-                }
-
-                ApplyFilter();
-                UpdateCount();
-            }
-
-            // Khôi phục Custom File Names
-            var customStr = Get(d, "CustomFileNames");
-            if (!string.IsNullOrEmpty(customStr))
-            {
-                var customDict = new Dictionary<long, string>();
-                foreach (var entry in customStr.Split('|'))
-                {
-                    var idx = entry.IndexOf(':');
-                    if (idx > 0 && long.TryParse(entry[..idx], out long id))
-                        customDict[id] = entry[(idx + 1)..];
-                }
-
-                foreach (var item in _masterList)
-                {
-                    if (customDict.TryGetValue(item.Id.GetValue(), out string cname))
-                        item.CustomFileName = cname;
-                }
-
-                DgSheets?.Items.Refresh();
-            }
+            // Không khôi phục tick chọn — chỉ khôi phục naming rules + custom file names
 
             // Khôi phục naming rules
             var rulesStr = Get(d, "NamingRules");
@@ -663,6 +642,20 @@ namespace THBIM
                         });
                     }
                 }
+
+                // Re-evaluate custom file name cho TOÀN BỘ masterList dựa trên naming rules
+                string rawFormat = BuildFormatStringFromRules(_savedNamingRules);
+                if (!string.IsNullOrEmpty(rawFormat))
+                {
+                    foreach (var item in _masterList)
+                    {
+                        var elem = _doc.GetElement(item.Id);
+                        if (elem != null)
+                            item.CustomFileName = EvaluateFileNameFormat(elem, rawFormat);
+                    }
+                }
+
+                DgSheets?.Items.Refresh();
             }
 
             // ── Format Tab - PDF ──
@@ -753,6 +746,26 @@ namespace THBIM
             if (!d.TryGetValue(key, out var v) || string.IsNullOrWhiteSpace(v))
                 return new List<string>();
             return v.Split('|').Where(s => !string.IsNullOrEmpty(s)).ToList();
+        }
+
+        /// <summary>
+        /// Build format string từ naming rules (giống CustomNameDialog.UpdatePreview)
+        /// Ví dụ: rules [{Sheet Number, "", "", "-"}, {Sheet Name, "", "", ""}]
+        /// → "&lt;Sheet Number&gt;-&lt;Sheet Name&gt;"
+        /// </summary>
+        private static string BuildFormatStringFromRules(IList<NameRuleItem> rules)
+        {
+            if (rules == null || rules.Count == 0) return "";
+            var parts = new List<string>();
+            for (int i = 0; i < rules.Count; i++)
+            {
+                var r = rules[i];
+                string part = $"{r.Prefix}<{r.ParameterName}>{r.Suffix}";
+                if (i < rules.Count - 1)
+                    part += r.Separator;
+                parts.Add(part);
+            }
+            return string.Join("", parts);
         }
     }
 }

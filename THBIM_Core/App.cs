@@ -203,6 +203,11 @@ namespace THBIM
                         AddMepSplitButton(panel, item.SplitGroup);
                 }
             }
+
+            ColorizePanel(mepTab, "LT Create", "#64B5F6");
+            ColorizePanel(mepTab, "LT Modify", "#FFB74D");
+            ColorizePanel(mepTab, "LT Align", "#81C784");
+            ColorizePanel(mepTab, "LT Tools", "#BA68C8");
         }
 
         private void AddMepSplitButton(RibbonPanel panel, THBIM.MEP.Core.SplitButtonGroup group)

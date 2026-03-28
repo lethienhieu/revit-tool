@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Xml.Serialization;
 using DB = Autodesk.Revit.DB;
+using ElementIdCompat = Autodesk.Revit.DB.ElementIdCompat;
 using Win = System.Windows.Controls;
 
 namespace THBIM
@@ -88,12 +89,23 @@ namespace THBIM
         private async System.Threading.Tasks.Task LoadSheetsAsync()
         {
             TxtLoadingStatus.Text = "Scanning sheets in project...";
-            PbLoading.IsIndeterminate = true; // Chạy hiệu ứng vô tận chờ quét
-            await System.Threading.Tasks.Task.Delay(10); // Nhường luồng cho UI cập nhật
+            PbLoading.IsIndeterminate = true;
+            await System.Threading.Tasks.Task.Delay(10);
 
             var sheets = new DB.FilteredElementCollector(_doc)
                 .OfClass(typeof(DB.ViewSheet)).Cast<DB.ViewSheet>()
                 .OrderBy(s => s.SheetNumber).ToList();
+
+            // Pre-collect tất cả TitleBlocks 1 lần (thay vì mỗi sheet 1 collector)
+            var titleBlockMap = new Dictionary<long, DB.Element>();
+            foreach (var tb in new DB.FilteredElementCollector(_doc)
+                .OfCategory(DB.BuiltInCategory.OST_TitleBlocks)
+                .OfClass(typeof(DB.FamilyInstance)))
+            {
+                long ownerViewId = ElementIdCompat.GetValue(tb.OwnerViewId);
+                if (!titleBlockMap.ContainsKey(ownerViewId))
+                    titleBlockMap[ownerViewId] = tb;
+            }
 
             _masterList = new List<SheetItem>();
 
@@ -107,17 +119,20 @@ namespace THBIM
                 TxtLoadingStatus.Text = $"Loading Sheet/Views {i + 1} of {sheets.Count}...";
                 PbLoading.Value = i + 1;
 
+                // Lấy paper size từ pre-collected map
+                titleBlockMap.TryGetValue(ElementIdCompat.GetValue(s.Id), out DB.Element cachedTb);
+                string paperSize = cachedTb != null ? GetPaperSizeFromTitleBlock(cachedTb, s) : "None";
+
                 _masterList.Add(new SheetItem
                 {
                     Id = s.Id,
                     SheetNumber = s.SheetNumber ?? "",
                     SheetName = s.Name ?? "",
-                    PaperSize = GetPaperSize(s), // Hàm này ngốn thời gian nhất
+                    PaperSize = paperSize,
                     IsSelected = false
                 });
 
-                // Cứ 5 bản vẽ thì "thở" 1 lần để UI kịp vẽ thanh Progress
-                if (i % 5 == 0) await System.Threading.Tasks.Task.Delay(1);
+                if (i % 50 == 0) await System.Threading.Tasks.Task.Delay(1);
             }
 
             ApplyFilter();
@@ -359,42 +374,26 @@ namespace THBIM
         }
 
 
-        private string GetPaperSize(DB.ViewSheet sheet)
+        private string GetPaperSizeFromTitleBlock(DB.Element titleBlock, DB.ViewSheet sheet)
         {
-            // 1. Tìm Khung tên (TitleBlock) trên Sheet
-            var titleBlock = new DB.FilteredElementCollector(_doc, sheet.Id)
-                .OfCategory(DB.BuiltInCategory.OST_TitleBlocks)
-                .OfClass(typeof(DB.FamilyInstance))
-                .FirstOrDefault();
-
             if (titleBlock == null) return "None";
 
-            // 2. Lấy BoundingBox của Khung tên trong không gian bản vẽ
             DB.BoundingBoxXYZ bbox = titleBlock.get_BoundingBox(sheet);
             if (bbox == null) return "Unknown";
 
-            // 3. Tính chiều rộng và chiều cao (Đơn vị nội bộ của Revit là Feet)
-            double widthFt = bbox.Max.X - bbox.Min.X;
-            double heightFt = bbox.Max.Y - bbox.Min.Y;
+            double widthMm = Math.Round((bbox.Max.X - bbox.Min.X) * 304.8);
+            double heightMm = Math.Round((bbox.Max.Y - bbox.Min.Y) * 304.8);
 
-            // 4. Đổi từ Feet sang Millimet (1 ft = 304.8 mm)
-            double widthMm = Math.Round(widthFt * 304.8);
-            double heightMm = Math.Round(heightFt * 304.8);
-
-            // 5. Tìm cạnh dài và cạnh ngắn (Để tool nhận diện đúng bất kể giấy xoay ngang hay dọc)
             double longEdge = Math.Max(widthMm, heightMm);
             double shortEdge = Math.Min(widthMm, heightMm);
 
-            // 6. So sánh với tiêu chuẩn ISO 216 (Cho phép sai số 5mm do làm tròn của Revit)
             double tolerance = 5.0;
-
             if (Math.Abs(longEdge - 1189) <= tolerance && Math.Abs(shortEdge - 841) <= tolerance) return "A0";
             if (Math.Abs(longEdge - 841) <= tolerance && Math.Abs(shortEdge - 594) <= tolerance) return "A1";
             if (Math.Abs(longEdge - 594) <= tolerance && Math.Abs(shortEdge - 420) <= tolerance) return "A2";
             if (Math.Abs(longEdge - 420) <= tolerance && Math.Abs(shortEdge - 297) <= tolerance) return "A3";
             if (Math.Abs(longEdge - 297) <= tolerance && Math.Abs(shortEdge - 210) <= tolerance) return "A4";
 
-            // 7. Nếu là khổ giấy tùy chỉnh (Custom), hiển thị luôn kích thước thực tế (Ví dụ: 900x600)
             return $"{longEdge}x{shortEdge}";
         }
 
