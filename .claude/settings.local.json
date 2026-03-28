@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(ls -la /e/THBIM-CODE/2025/CODE/THBIM-REBAR/src/THBIM.Rebar/*.xaml /e/THBIM-CODE/2025/CODE/THBIM-REBAR/src/THBIM.Rebar/*.addin)",
+      "Bash(find E:/THBIM-CODE/2025/CODE/THBIM -type f \\\\\\(-name *.ts -o -name *.js -o -name *.tsx -o -name *.jsx \\\\\\))"
+    ]
+  }
+}

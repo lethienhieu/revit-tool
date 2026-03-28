@@ -41,11 +41,7 @@ namespace THBIM
 
             var tags = GetTagsFromSelectionOrPick(uidoc, doc, view);
             if (tags == null) return Result.Cancelled;
-            if (tags.Count < 2)
-            {
-                TaskDialog.Show("Arrange (No Cross)", "Cần chọn ít nhất 2 Tag.");
-                return Result.Cancelled;
-            }
+            if (tags.Count < 2) return Result.Cancelled;
 
             XYZ right = view.RightDirection;
             XYZ up = view.UpDirection;
@@ -57,9 +53,9 @@ namespace THBIM
                 XYZ head = GetTagKeyPoint(tag, view);
                 if (head == null) continue;
 
-                var bbTag = SafeGetBB(tag, view);
-                double w = GetExtentAlong(bbTag, right); if (w <= 0) w = FALLBACK_SIZE_FT;
-                double h = GetExtentAlong(bbTag, up); if (h <= 0) h = FALLBACK_SIZE_FT;
+                // Dùng kích thước ước lượng cố định theo view scale (bỏ qua BB chứa leader)
+                double w = 10.0 * view.Scale / 304.8;
+                double h = 3.5 * view.Scale / 304.8;
 
                 // Tìm anchor (tâm BB của host element trong view), nếu không có thì fallback vị trí tag
                 XYZ anchor = TryGetHostAnchorCenter(tag, view) ?? head;
@@ -71,10 +67,7 @@ namespace THBIM
             }
 
             if (infos.Count < 2)
-            {
-                TaskDialog.Show("Arrange (No Cross)", "Không xác định được vị trí/kích thước Tag.");
                 return Result.Cancelled;
-            }
 
             // Nhận biết trục giãn (tương tự ArrangeTagsNeat)
             double rangeX = infos.Max(i => i.HeadX) - infos.Min(i => i.HeadX);
@@ -84,13 +77,16 @@ namespace THBIM
                 (rangeY <= 3 * TOL_FT) ? ArrangeAxis.Horizontal :
                 ArrangeAxis.Vertical;
 
-            // ===== QUAN TRỌNG: Thứ tự giãn = thứ tự anchor dọc theo trục VUÔNG GÓC =====
-            // Nếu đã align dọc (Vertical) → sắp theo anchor Y, rồi giãn Y (đầu tiên giữ nguyên).
-            // Nếu đã align ngang (Horizontal) → sắp theo anchor X, rồi giãn X (đầu tiên giữ nguyên).
-            if (axis == ArrangeAxis.Vertical)
-                infos = infos.OrderBy(i => i.AnchorY).ToList(); // từ dưới lên theo anchor
-            else
-                infos = infos.OrderBy(i => i.AnchorX).ToList(); // từ trái qua theo anchor
+            // ===== Thứ tự: tag gần element nhất → dưới, xa dần → lên trên =====
+            // Tính khoảng cách từ anchor (host) tới tâm nhóm tag trong view plane
+            double avgHeadX = infos.Average(i => i.HeadX);
+            double avgHeadY = infos.Average(i => i.HeadY);
+            infos = infos.OrderBy(i =>
+            {
+                double dx = i.AnchorX - avgHeadX;
+                double dy = i.AnchorY - avgHeadY;
+                return dx * dx + dy * dy;
+            }).ToList();
 
             int moved = 0, skippedPinned = 0, failed = 0;
 
@@ -98,87 +94,43 @@ namespace THBIM
             {
                 t.Start();
 
-                if (axis == ArrangeAxis.Vertical)
+                // === Bi-directional spread từ tâm ===
+                // Bước 1: Tính target positions (chưa move) — giãn đều từ tâm
+                double[] targets = ComputeSpreadPositions(infos, axis);
+
+                // Bước 2: Move từng tag đến target
+                for (int i = 0; i < infos.Count; i++)
                 {
-                    // Neo tag đầu theo vị trí hiện tại (giảm dịch tổng thể)
-                    infos[0].Target = infos[0].Head;
+                    var cur = infos[i];
+                    if (cur.Tag.Pinned) { skippedPinned++; continue; }
 
-                    double prevCenterY = infos[0].HeadY;
-                    double prevHalf = infos[0].H_Up * 0.5;
+                    double current = axis == ArrangeAxis.Vertical ? cur.HeadY : cur.HeadX;
+                    double delta1d = targets[i] - current;
 
-                    for (int i = 1; i < infos.Count; i++)
+                    if (Math.Abs(delta1d) > TOL_FT)
                     {
-                        var cur = infos[i];
-                        double curHalf = cur.H_Up * 0.5;
+                        XYZ delta = axis == ArrangeAxis.Vertical
+                            ? up.Multiply(delta1d)
+                            : right.Multiply(delta1d);
 
-                        double minCenterY = prevCenterY + (prevHalf + PAD_FT + curHalf);
-                        double targetCenterY = Math.Max(cur.HeadY, minCenterY);
-                        double dy = targetCenterY - cur.HeadY;
-
-                        XYZ delta = up.Multiply(dy);
                         if (TryMoveTag(cur.Tag, delta))
                         {
                             moved++;
                             cur.Target = cur.Head + delta;
-
-                            prevCenterY = targetCenterY;
-                            prevHalf = curHalf;
                         }
                         else
                         {
-                            if (cur.Tag.Pinned) skippedPinned++; else failed++;
-                            cur.Target = cur.Head; // giữ nguyên
-                            prevCenterY = cur.HeadY;
-                            prevHalf = curHalf;
-                        }
-                    }
-                }
-                else // Horizontal
-                {
-                    infos[0].Target = infos[0].Head;
-
-                    double prevCenterX = infos[0].HeadX;
-                    double prevHalf = infos[0].W_Right * 0.5;
-
-                    for (int i = 1; i < infos.Count; i++)
-                    {
-                        var cur = infos[i];
-                        double curHalf = cur.W_Right * 0.5;
-
-                        double minCenterX = prevCenterX + (prevHalf + PAD_FT + curHalf);
-                        double targetCenterX = Math.Max(cur.HeadX, minCenterX);
-                        double dx = targetCenterX - cur.HeadX;
-
-                        XYZ delta = right.Multiply(dx);
-                        if (TryMoveTag(cur.Tag, delta))
-                        {
-                            moved++;
-                            cur.Target = cur.Head + delta;
-
-                            prevCenterX = targetCenterX;
-                            prevHalf = curHalf;
-                        }
-                        else
-                        {
-                            if (cur.Tag.Pinned) skippedPinned++; else failed++;
+                            failed++;
                             cur.Target = cur.Head;
-                            prevCenterX = cur.HeadX;
-                            prevHalf = curHalf;
                         }
                     }
+
+                    // Luôn apply leader angle cho mọi tag (kể cả không di chuyển)
+                    LeaderAngleHelper.ApplyIfNeeded(cur.Tag);
                 }
 
                 t.Commit();
             }
-
-            string axisName = axis == ArrangeAxis.Vertical ? "Vertical (Up)" : "Horizontal (Right)";
-            string summary =
-                $"Axis: {axisName}\n" +
-                $"Tổng Tag: {infos.Count}\n" +
-                $"- Đã sắp xếp (no-cross): {moved}\n" +
-                $"- Bỏ qua (pinned): {skippedPinned}\n" +
-                $"- Lỗi/không di chuyển được: {failed}";
-            TaskDialog.Show("Arrange (No Cross)", summary);
 
             return Result.Succeeded;
         }
@@ -337,33 +289,72 @@ namespace THBIM
             return null;
         }
 
+        /// <summary>
+        /// Tính vị trí target cho mỗi tag, spread đều từ tâm (bi-directional).
+        /// Tags ở nửa dưới/trái đẩy xuống/trái, nửa trên/phải đẩy lên/phải.
+        /// </summary>
+        private static double[] ComputeSpreadPositions(List<TagInfo> infos, ArrangeAxis axis)
+        {
+            int n = infos.Count;
+            var result = new double[n];
+
+            // Lấy current position theo trục
+            var positions = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                positions[i] = axis == ArrangeAxis.Vertical ? infos[i].HeadY : infos[i].HeadX;
+            }
+
+            // Lấy kích thước trung bình làm khoảng cách đều
+            double avgSize = 0;
+            for (int i = 0; i < n; i++)
+                avgSize += axis == ArrangeAxis.Vertical ? infos[i].H_Up : infos[i].W_Right;
+            avgSize /= n;
+            double step = avgSize + PAD_FT; // khoảng cách đều giữa các tag
+
+            // Tâm của nhóm tag hiện tại
+            double centerCurrent = 0;
+            for (int i = 0; i < n; i++) centerCurrent += positions[i];
+            centerCurrent /= n;
+
+            // Spread đều từ tâm với step cố định
+            double totalSpan = step * (n - 1);
+            double start = centerCurrent - totalSpan * 0.5;
+
+            for (int i = 0; i < n; i++)
+            {
+                result[i] = start + i * step;
+            }
+
+            return result;
+        }
+
         private static bool TryMoveTag(IndependentTag tag, XYZ delta)
         {
             if (delta == null || delta.GetLength() <= TOL_FT) return true;
+            if (tag.Pinned) return false;
 
-            // Thử dời đầu tag trước (leader đẹp hơn)
             try
             {
-                XYZ cur = tag.TagHeadPosition;
-                if (cur != null)
+                if (tag.HasLeader)
                 {
-                    tag.TagHeadPosition = cur + delta;
-                    return true;
+                    ElementTransformUtils.MoveElement(tag.Document, tag.Id, delta);
                 }
-            }
-            catch { /* fallback */ }
-
-            // Fallback: Move cả element
-            try
-            {
-                if (tag.Pinned) return false;
-                ElementTransformUtils.MoveElement(tag.Document, tag.Id, delta);
+                else
+                {
+                    XYZ cur = tag.TagHeadPosition;
+                    if (cur != null)
+                    {
+                        tag.TagHeadPosition = cur + delta;
+                    }
+                    else
+                    {
+                        ElementTransformUtils.MoveElement(tag.Document, tag.Id, delta);
+                    }
+                }
                 return true;
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         private static double Dot(XYZ p, XYZ dir) => p.X * dir.X + p.Y * dir.Y + p.Z * dir.Z;

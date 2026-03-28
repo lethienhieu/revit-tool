@@ -1,0 +1,124 @@
+<Window x:Class="THBIM.LeaderAngleSettingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Leader Angle Setting"
+        Width="380" Height="480"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <Style x:Key="PresetBtn" TargetType="Button">
+            <Setter Property="MinWidth" Value="60"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="6" Background="#E8E8E8" BorderBrush="#CCC" BorderThickness="1.5" Padding="12,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#D9A566"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Active">
+                                <Setter TargetName="bd" Property="Background" Value="#C67D3C"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#A0622E"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="5" Background="{TemplateBinding Background}" BorderBrush="#CCC" BorderThickness="1" Padding="14,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Leader Angle Setting" FontSize="16" FontWeight="Bold"
+                   Foreground="#C67D3C" Margin="0,0,0,12"/>
+
+        <!-- Presets + Custom -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="Presets" FontWeight="SemiBold" Foreground="#555" Margin="0,0,0,6"/>
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="btn30" Content="30°" Style="{StaticResource PresetBtn}" Click="Preset_Click"/>
+                <Button x:Name="btn45" Content="45°" Style="{StaticResource PresetBtn}" Click="Preset_Click"/>
+                <Button x:Name="btn60" Content="60°" Style="{StaticResource PresetBtn}" Click="Preset_Click"/>
+                <Button x:Name="btn90" Content="90°" Style="{StaticResource PresetBtn}" Click="Preset_Click"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Text="Custom:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold" Foreground="#555"/>
+                <TextBox x:Name="txtCustom" Width="60" Height="30" FontSize="14" VerticalContentAlignment="Center"
+                         TextAlignment="Center" TextChanged="TxtCustom_TextChanged"/>
+                <TextBlock Text="°" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="14"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Canvas Preview -->
+        <Border Grid.Row="2" CornerRadius="8" BorderBrush="#DDD" BorderThickness="1" Background="White" Margin="0,4">
+            <Grid>
+                <Canvas x:Name="previewCanvas" ClipToBounds="True"/>
+                <TextBlock x:Name="lblAngleInfo" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                           Margin="0,0,0,8" FontSize="12" Foreground="#888"/>
+            </Grid>
+        </Border>
+
+        <!-- Current value display -->
+        <TextBlock Grid.Row="3" x:Name="lblCurrent" FontSize="13" Foreground="#C67D3C" FontWeight="SemiBold"
+                   Margin="0,6,0,10" HorizontalAlignment="Center"/>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="Reset" Style="{StaticResource ActionBtn}"
+                    Background="#FFECEC" Foreground="#C0392B" Click="Reset_Click"/>
+            <Button Grid.Column="2" Content="Cancel" Style="{StaticResource ActionBtn}"
+                    Background="#EEE" Foreground="#555" Click="Cancel_Click"/>
+            <Button Grid.Column="3" Content="Apply" Style="{StaticResource ActionBtn}"
+                    Background="#C67D3C" Foreground="White" FontWeight="Bold" Click="Apply_Click"/>
+        </Grid>
+    </Grid>
+</Window>

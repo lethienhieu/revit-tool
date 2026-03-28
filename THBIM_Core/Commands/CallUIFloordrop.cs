@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 using System.Windows.Interop;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using THBIM;
-using THBIM.Licensing;
 using THBIM.Tools.UI;
 
 namespace THBIM
@@ -18,9 +16,7 @@ namespace THBIM
         {
             // 1. Check License
             if (!THBIM.Licensing.LicenseManager.EnsureActivated(null))
-            {
                 return Result.Cancelled;
-            }
             if (!THBIM.Licensing.LicenseManager.EnsurePremium())
                 return Result.Cancelled;
 
@@ -40,34 +36,15 @@ namespace THBIM
             WindowInteropHelper helper = new WindowInteropHelper(window);
             helper.Owner = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
 
-            // Mở giao diện
             bool? dialogResult = window.ShowDialog();
-
-            // Lưu lại trạng thái: Người dùng đã Update chưa?
             bool hasUpdatedData = window.HasUpdated;
-
             _openedWindow = null;
 
-            // =================================================================
-            // TRƯỜNG HỢP 1: NGƯỜI DÙNG TẮT BẢNG (KHÔNG NHẤN START PICK)
-            // =================================================================
+            // User closed without clicking START
             if (dialogResult != true)
-            {
-                // Nếu đã lỡ Update rồi thì phải lưu lại (Succeeded), đừng Cancel để bị Rollback
-                if (hasUpdatedData)
-                {
-                    return Result.Succeeded;
-                }
-                else
-                {
-                    return Result.Cancelled;
-                }
-            }
+                return hasUpdatedData ? Result.Succeeded : Result.Cancelled;
 
-            // =================================================================
-            // TRƯỜNG HỢP 2: NGƯỜI DÙNG NHẤN START PICK
-            // =================================================================
-
+            // User clicked START — run picker
             FamilySymbol symbol = window.SelectedFamilySymbol;
             if (symbol == null) return Result.Failed;
 
@@ -78,31 +55,12 @@ namespace THBIM
                 t.Commit();
             }
 
-            Result pickResult;
+            FloorDropPicker picker = new FloorDropPicker();
+            Result pickResult = picker.Run(uidoc, symbol, ref message);
 
-            // Chạy logic Pick (Left hoặc Right)
-            if (window.IsLeftMode)
-            {
-                Floordropleft logicLeft = new Floordropleft();
-                pickResult = logicLeft.Run(uidoc, symbol, ref message);
-            }
-            else
-            {
-                Floordropright logicRight = new Floordropright();
-                pickResult = logicRight.Run(uidoc, symbol, ref message);
-            }
-
-            // =================================================================
-            // QUAN TRỌNG: GHI ĐÈ KẾT QUẢ ĐỂ BẢO VỆ UPDATE
-            // =================================================================
-            // Nếu người dùng đang Pick dở mà nhấn ESC (pickResult == Cancelled)
-            // NHƯNG trước đó họ đã nhấn Update (hasUpdatedData == true)
-            // Thì ta bắt buộc phải trả về Succeeded để không bị mất cái Update đó.
-
+            // Protect UPDATE data if user ESC during picking
             if (pickResult == Result.Cancelled && hasUpdatedData)
-            {
                 return Result.Succeeded;
-            }
 
             return pickResult;
         }

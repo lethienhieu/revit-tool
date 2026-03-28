@@ -42,11 +42,7 @@ namespace THBIM
             // Lấy danh sách tag người dùng chọn (selection hoặc quét rectangle)
             List<IndependentTag> tags = GetTagsFromSelectionOrPick(uidoc, doc, view);
             if (tags == null) return Result.Cancelled; // user ESC
-            if (tags.Count < 2)
-            {
-                TaskDialog.Show("Align Bottom", "Cần quét chọn ít nhất 2 Tag.");
-                return Result.Cancelled;
-            }
+            if (tags.Count < 2) return Result.Cancelled;
 
             XYZ up = view.UpDirection;
 
@@ -61,10 +57,7 @@ namespace THBIM
             }
 
             if (infos.Count < 2)
-            {
-                TaskDialog.Show("Align Bottom", "Không xác định được vị trí Tag.");
                 return Result.Cancelled;
-            }
 
             // Anchor = tag có y nhỏ nhất (dưới cùng)
             TagInfo anchor = infos.OrderBy(i => i.AxisValue).First();
@@ -95,34 +88,14 @@ namespace THBIM
 
                     XYZ delta = up.Multiply(dy);
 
-                    bool done = TryMoveByHeadPosition(info.Tag, delta);
-                    if (!done)
-                    {
-                        try
-                        {
-                            ElementTransformUtils.MoveElement(doc, info.Tag.Id, delta);
-                            done = true;
-                        }
-                        catch
-                        {
-                            done = false;
-                        }
-                    }
+                    bool done = MoveTag(doc, info.Tag, delta);
+                    if (done) LeaderAngleHelper.ApplyIfNeeded(info.Tag);
 
                     if (done) moved++; else failed++;
                 }
 
                 t.Commit();
             }
-
-            string summary =
-                $"Tổng: {infos.Count} tag\n" +
-                $"- Anchor (dưới cùng): #{anchor.Tag.Id.GetValue()}\n" +
-                $"- Đã căn: {moved}\n" +
-                $"- Bỏ qua (pinned): {skippedPinned}\n" +
-                $"- Bỏ qua (đã thẳng ~ tolerance): {skippedTol}\n" +
-                $"- Lỗi/không di chuyển được: {failed}";
-            TaskDialog.Show("Align Bottom", summary);
 
             return Result.Succeeded;
         }
@@ -201,14 +174,21 @@ namespace THBIM
             return null;
         }
 
-        private static bool TryMoveByHeadPosition(IndependentTag tag, XYZ delta)
+        private static bool MoveTag(Document doc, IndependentTag tag, XYZ delta)
         {
+            if (delta.GetLength() <= TOL_FT) return true;
             try
             {
-                XYZ cur = tag.TagHeadPosition;
-                if (cur == null) return false;
-                if (delta.GetLength() <= TOL_FT) return true;
-                tag.TagHeadPosition = cur + delta;
+                if (tag.HasLeader)
+                {
+                    ElementTransformUtils.MoveElement(doc, tag.Id, delta);
+                }
+                else
+                {
+                    XYZ cur = tag.TagHeadPosition;
+                    if (cur == null) return false;
+                    tag.TagHeadPosition = cur + delta;
+                }
                 return true;
             }
             catch { return false; }

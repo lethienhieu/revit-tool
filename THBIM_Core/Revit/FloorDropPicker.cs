@@ -1,4 +1,4 @@
-﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using System;
@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace THBIM
 {
-    public class Floordropleft
+    public class FloorDropPicker
     {
         public Result Run(UIDocument uidoc, FamilySymbol symbol, ref string message)
         {
@@ -17,37 +17,29 @@ namespace THBIM
             {
                 while (true)
                 {
-                    // Pick đối tượng
                     Reference pickedRef = uidoc.Selection.PickObject(
                         ObjectType.Edge,
                         new FloorEdgeSelectionFilter(),
                         "Pick the edge between two floors (ESC to exit)");
 
                     XYZ pickedPoint = pickedRef.GlobalPoint;
-
-                    // Lấy giá trị chuỗi (Số hoặc "Var.")
                     string offsetText = GetAdjacentFloorText(doc, pickedPoint);
 
-                    // Nếu có giá trị hợp lệ thì thực thi
                     if (!string.IsNullOrEmpty(offsetText))
                     {
-                        using (Transaction t = new Transaction(doc, "Place & Align & Orient (Left)"))
+                        using (Transaction t = new Transaction(doc, "Place Floor Drop"))
                         {
                             t.Start();
 
-                            // 1. Đặt Family
                             FamilyInstance tag = doc.Create.NewFamilyInstance(pickedPoint, symbol, doc.ActiveView);
                             doc.Regenerate();
 
-                            // 2. Gán giá trị Text
                             Parameter param = GetFirstEditableTextParam(tag);
                             if (param != null) param.Set(offsetText);
 
-                            // 3. Align song song
                             AlignInstanceToVector(doc, tag, pickedRef, pickedPoint);
                             doc.Regenerate();
 
-                            // 4. Xử lý hướng (Logic ĐẢO NGƯỢC so với bản Right)
                             ProcessOrientationByAngle(doc, tag, pickedRef, pickedPoint);
 
                             t.Commit();
@@ -67,7 +59,7 @@ namespace THBIM
         }
 
         // ==========================================================
-        // CÁC HÀM XỬ LÝ LOGIC (ĐÃ ĐẢO NGƯỢC ĐIỀU KIỆN MIRROR)
+        // ORIENTATION & MIRROR LOGIC
         // ==========================================================
 
         private void ProcessOrientationByAngle(Document doc, FamilyInstance instance, Reference edgeRef, XYZ pickPoint)
@@ -85,12 +77,10 @@ namespace THBIM
                 lineDir = -lineDir;
 
             double angleWithY = XYZ.BasisY.AngleTo(lineDir);
-
             bool isGreaterThan90 = angleWithY > (Math.PI / 2.0 + 0.001);
 
             if (isGreaterThan90)
             {
-                // Logic Góc > 90 độ
                 Line axis = Line.CreateBound(pickPoint, pickPoint + XYZ.BasisZ);
                 ElementTransformUtils.RotateElement(doc, instance.Id, axis, Math.PI);
                 doc.Regenerate();
@@ -102,7 +92,6 @@ namespace THBIM
 
                 if (isHorizontal)
                 {
-                    // Logic Trục Hoành
                     Line axis = Line.CreateBound(pickPoint, pickPoint + XYZ.BasisZ);
                     ElementTransformUtils.RotateElement(doc, instance.Id, axis, Math.PI);
                     doc.Regenerate();
@@ -112,8 +101,6 @@ namespace THBIM
                     double elevAbove = GetFloorElevationAtPoint(doc, pointAbove);
                     double elevBelow = GetFloorElevationAtPoint(doc, pointBelow);
 
-                    // --- ĐẢO NGƯỢC LOGIC: Sàn Trên THẤP HƠN Sàn Dưới -> Mirror ---
-                    // (Bản Right là: elevAbove > elevBelow)
                     if (elevAbove < elevBelow && elevAbove != -9999 && elevBelow != -9999)
                     {
                         ExecuteMirror(doc, instance, pickPoint, lineDir);
@@ -135,16 +122,15 @@ namespace THBIM
             double elevLeft = GetFloorElevationAtPoint(doc, pointLeft);
             double elevRight = GetFloorElevationAtPoint(doc, pointRight);
 
-            // --- ĐẢO NGƯỢC LOGIC: Trái CAO HƠN Phải -> Mirror ---
-            // (Bản Right là: elevLeft < elevRight)
-            // Giả định Family này mặc định là Trái Thấp - Phải Cao, nên nếu Trái Cao hơn thì phải lật.
             if (elevLeft > elevRight && elevLeft != -9999 && elevRight != -9999)
             {
                 ExecuteMirror(doc, instance, pickPoint, lineDir);
             }
         }
 
-        // --- CÁC HÀM HỖ TRỢ BÊN DƯỚI GIỮ NGUYÊN (VÌ LÀ HÀM TÍNH TOÁN HÌNH HỌC) ---
+        // ==========================================================
+        // GEOMETRY HELPERS
+        // ==========================================================
 
         private void ExecuteMirror(Document doc, FamilyInstance instance, XYZ pickPoint, XYZ lineDir)
         {
@@ -187,7 +173,10 @@ namespace THBIM
                 Arc.Create(Plane.CreateByNormalAndOrigin(XYZ.BasisZ, bot), r, Math.PI, 2 * Math.PI)
             };
             Solid sol = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { CurveLoop.Create(profile) }, XYZ.BasisZ, 20);
-            var floors = new FilteredElementCollector(doc, doc.ActiveView.Id).OfCategory(BuiltInCategory.OST_Floors).WherePasses(new ElementIntersectsSolidFilter(sol)).ToElements();
+            var floors = new FilteredElementCollector(doc, doc.ActiveView.Id)
+                .OfCategory(BuiltInCategory.OST_Floors)
+                .WherePasses(new ElementIntersectsSolidFilter(sol))
+                .ToElements();
             return floors.Count == 0 ? -9999 : floors.Max(f => f.get_BoundingBox(null).Max.Z);
         }
 
@@ -199,7 +188,8 @@ namespace THBIM
                 Arc.Create(Plane.CreateByNormalAndOrigin(XYZ.BasisZ, centerBottom), radius, 0, Math.PI),
                 Arc.Create(Plane.CreateByNormalAndOrigin(XYZ.BasisZ, centerBottom), radius, Math.PI, 2 * Math.PI)
             };
-            Solid searchSolid = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { CurveLoop.Create(profile) }, XYZ.BasisZ, 50.0);
+            Solid searchSolid = GeometryCreationUtilities.CreateExtrusionGeometry(
+                new List<CurveLoop> { CurveLoop.Create(profile) }, XYZ.BasisZ, 50.0);
 
             var floors = new FilteredElementCollector(doc, doc.ActiveView.Id)
                 .OfCategory(BuiltInCategory.OST_Floors)
@@ -210,9 +200,7 @@ namespace THBIM
 
             var topFloors = floors.OrderByDescending(x => x.get_BoundingBox(null).Max.Z).Take(2).ToList();
             if (IsFloorSloped(topFloors[0]) || IsFloorSloped(topFloors[1]))
-            {
                 return "Var.";
-            }
 
             double h1 = topFloors[0].get_BoundingBox(null).Max.Z;
             double h2 = topFloors[1].get_BoundingBox(null).Max.Z;
@@ -236,10 +224,7 @@ namespace THBIM
                     foreach (Face face in solid.Faces)
                     {
                         XYZ normal = face.ComputeNormal(new UV(0.5, 0.5));
-                        if (normal.Z > 0)
-                        {
-                            if (Math.Abs(normal.Z) < 0.999) return true;
-                        }
+                        if (normal.Z > 0 && Math.Abs(normal.Z) < 0.999) return true;
                     }
                 }
             }
@@ -249,13 +234,17 @@ namespace THBIM
         private Parameter GetFirstEditableTextParam(Element e)
         {
             foreach (Parameter p in e.Parameters)
-                if (!p.IsReadOnly && p.StorageType == StorageType.String && p.Definition.GetDataType() == SpecTypeId.String.Text) return p;
+                if (!p.IsReadOnly && p.StorageType == StorageType.String && p.Definition.GetDataType() == SpecTypeId.String.Text)
+                    return p;
             return null;
         }
 
         public class FloorEdgeSelectionFilter : ISelectionFilter
         {
-            public bool AllowElement(Element elem) => elem.Category.Id.GetValue() == (int)BuiltInCategory.OST_Floors || elem.Category.Id.GetValue() == (int)BuiltInCategory.OST_Lines || elem is DetailLine || elem is ModelLine;
+            public bool AllowElement(Element elem) =>
+                elem.Category.Id.GetValue() == (int)BuiltInCategory.OST_Floors ||
+                elem.Category.Id.GetValue() == (int)BuiltInCategory.OST_Lines ||
+                elem is DetailLine || elem is ModelLine;
             public bool AllowReference(Reference r, XYZ p) => true;
         }
     }

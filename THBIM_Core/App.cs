@@ -61,7 +61,7 @@ namespace THBIM
             var pbOV = new PushButtonData("Checkoverlap_Run", "Check overlap", asm, "THBIM.CallUIOverlap") { ToolTip = "Check overlap and highlight.", Image = File.Exists(icon16OV) ? new BitmapImage(new Uri(icon16OV)) : null };
             var pbID = new PushButtonData("LinkIDs_Run", "Linked IDS", asm, "THBIM.CallLinkIDs") { ToolTip = "Display ElementId of selected element.", Image = File.Exists(icon16ID) ? new BitmapImage(new Uri(icon16ID)) : null };
             var pbRS = new PushButtonData("RenameSheets_Run", "Rename Sheets", asm, "THBIM.CallUIReName") { ToolTip = "Rename Sheet and count SheetNumber.", Image = File.Exists(icon16RS) ? new BitmapImage(new Uri(icon16RS)) : null };
-            var pbPF = new PushButtonData("ProFilter_Run", "Pro Filter", asm, "THBIM.ProFilterCommand") { ToolTip = "Select elements by Category.", Image = File.Exists(icon16PF) ? new BitmapImage(new Uri(icon16PF)) : null };
+            var pdPFData = new PulldownButtonData("ProFilter_DD", "Pro Filter") { ToolTip = "Select elements by Category, Family, or Type.", Image = File.Exists(icon16PF) ? new BitmapImage(new Uri(icon16PF)) : null };
             var pbBubble = new PushButtonData("GridBubble_Run", "GridBubble", asm, "THBIM.CallUIbubble") { ToolTip = "Show/Hide Grid/Level heads.", Image = File.Exists(icon16Bubble) ? new BitmapImage(new Uri(icon16Bubble)) : null };
             var pbProSheet = new PushButtonData("ProSheets_Run", "ProSheets", asm, "THBIM.CallUIPROSHEET") { ToolTip = "Export View/Sheets to PDF, DWG.", LargeImage = File.Exists(iconProSheet32) ? new BitmapImage(new Uri(iconProSheet32)) : null };
             var pbQTOPRO = new PushButtonData("QTOPRO_Run", "QTOPRO", asm, "THBIM.CallUIQTOPRO") { ToolTip = "Extract QTO from Revit directly to Excel, complete with revision tracking and custom profile management.", LargeImage = File.Exists(iconQTOPRO32) ? new BitmapImage(new Uri(iconQTOPRO32)) : null };
@@ -78,7 +78,13 @@ namespace THBIM
             panelAnnot.AddSeparator();
             panelAnnot.AddItem(pbQTOPRO);
             panelAnnot.AddSeparator();
-            panelAnnot.AddStackedItems(pbRS, pbID, pbPF);
+            IList<RibbonItem> stackFilter = panelAnnot.AddStackedItems(pbRS, pbID, pdPFData);
+            if (stackFilter.Count > 2 && stackFilter[2] is PulldownButton pdPF)
+            {
+                pdPF.AddPushButton(new PushButtonData("PF_Category", "By Category", asm, "THBIM.ProFilterCommand") { ToolTip = "Filter elements by Category" });
+                pdPF.AddPushButton(new PushButtonData("PF_Family", "By Family", asm, "THBIM.ProFilterByFamilyCommand") { ToolTip = "Filter elements by Family name" });
+                pdPF.AddPushButton(new PushButtonData("PF_Type", "By Type", asm, "THBIM.ProFilterByTypeCommand") { ToolTip = "Filter elements by Type name" });
+            }
             panelAnnot.AddSeparator();
 
             IList<RibbonItem> stackDim = panelAnnot.AddStackedItems(pbBubble, pdDimGroup, pbDrop);
@@ -97,6 +103,8 @@ namespace THBIM
                 pullDown.AddPushButton(new PushButtonData("THBIM.AlignTags.Top", "Top", asm, "THBIM.AlignTagsTopCommand") { LargeImage = File.Exists(iconAlignTop) ? new BitmapImage(new Uri(iconAlignTop)) : null });
                 pullDown.AddPushButton(new PushButtonData("THBIM.AlignTags.Bottom", "Bottom", asm, "THBIM.AlignTagsBottomCommand") { LargeImage = File.Exists(iconAlignBottom) ? new BitmapImage(new Uri(iconAlignBottom)) : null });
                 pullDown.AddPushButton(new PushButtonData("THBIM.AlignTags.Autoarrange", "Autoarrange", asm, "THBIM.ArrangeTagsNoCrossCommand") { LargeImage = File.Exists(iconArr) ? new BitmapImage(new Uri(iconArr)) : null });
+                pullDown.AddSeparator();
+                pullDown.AddPushButton(new PushButtonData("THBIM.AlignTags.LeaderAngle", "Leader Angle Setting", asm, "THBIM.LeaderAngleSettingCommand") { ToolTip = "Set leader elbow angle for align commands" });
             }
 
             panelAnnot.AddSeparator();
@@ -164,8 +172,58 @@ namespace THBIM
 
             ColorizePanel(tab, panelStructName, "#E38888");
 
+#if NET8_0_OR_GREATER
+            // ==========================================
+            // TH TOOLS MEP TAB (MEP Accelerator)
+            // ==========================================
+            try
+            {
+                RegisterMepTab(app, asm, dir);
+            }
+            catch { }
+#endif
+
             return Result.Succeeded;
         }
+
+#if NET8_0_OR_GREATER
+        private void RegisterMepTab(UIControlledApplication app, string asm, string dir)
+        {
+            const string mepTab = "TH Tools MEP";
+            try { app.CreateRibbonTab(mepTab); } catch { }
+
+            foreach (var (panelName, items) in THBIM.MEP.Core.SuiteDefinition.Panels)
+            {
+                var panel = app.CreateRibbonPanel(mepTab, panelName);
+                foreach (var item in items)
+                {
+                    if (item.Command is not null)
+                        panel.AddItem(THBIM.MEP.Core.UiHelpers.CreateButtonData(item.Command));
+                    else if (item.SplitGroup is not null)
+                        AddMepSplitButton(panel, item.SplitGroup);
+                }
+            }
+        }
+
+        private void AddMepSplitButton(RibbonPanel panel, THBIM.MEP.Core.SplitButtonGroup group)
+        {
+            var splitData = new SplitButtonData(group.InternalName, group.DisplayName);
+            var splitButton = panel.AddItem(splitData) as SplitButton;
+            if (splitButton == null) return;
+
+            string asmDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
+            string iconPath = Path.Combine(asmDir, "Resources", "MEP", group.IconFile);
+            if (File.Exists(iconPath))
+            {
+                var image = new BitmapImage(new Uri(iconPath));
+                splitButton.Image = image;
+                splitButton.LargeImage = image;
+            }
+
+            foreach (var cmd in group.Items)
+                splitButton.AddPushButton(THBIM.MEP.Core.UiHelpers.CreateButtonData(cmd));
+        }
+#endif
 
         public Result OnShutdown(UIControlledApplication app)
         {

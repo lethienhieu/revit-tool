@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
-using THBIM.Tools; // Namespace chứa DimSettings từ UI
+using THBIM.Tools;
 #nullable disable
 
 namespace ColumnAutoDim.Revit
@@ -11,6 +11,8 @@ namespace ColumnAutoDim.Revit
     {
         private const double TOLERANCE = 1.0e-9;
         private const double ZERO_DIM_TOLERANCE = 0.0033;
+        // Khoảng cách grid-to-center nhỏ hơn giá trị này → coi grid đi qua tâm cột
+        private const double GRID_AT_CENTER_TOLERANCE = 0.01; // ~3mm
 
         public static void Run(Document doc, View view, List<Element> columns, List<Grid> allGrids, DimSettings settings)
         {
@@ -49,13 +51,24 @@ namespace ColumnAutoDim.Revit
             if (!settings.IsDimColumnEnabled) return;
             XYZ safeMeasureDir = new XYZ(-offsetDir.Y, offsetDir.X, 0).Normalize();
 
+            // ========================================================
+            // FIX BUG 1: Ưu tiên stable references từ GetReferences()
+            // trước, chỉ fallback sang geometry faces nếu không có
+            // ========================================================
             Reference ref1 = null; Reference ref2 = null;
             bool isCenterDim = false;
 
-            if (GetExtremeFaces(fi, offsetDir, out Reference rMin, out Reference rMax))
+            // Thử lấy stable references trước (luôn hoạt động nếu family có reference planes)
+            if (GetStableExtentReferences(fi, safeMeasureDir, out Reference rStableMin, out Reference rStableMax))
+            {
+                ref1 = rStableMin; ref2 = rStableMax; isCenterDim = false;
+            }
+            // Fallback: thử geometry faces
+            else if (GetExtremeFaces(fi, offsetDir, out Reference rMin, out Reference rMax))
             {
                 ref1 = rMin; ref2 = rMax; isCenterDim = false;
             }
+            // Fallback cuối: center reference
             else
             {
                 Reference rCenter = GetCenterReference(fi, safeMeasureDir);
@@ -65,7 +78,8 @@ namespace ColumnAutoDim.Revit
 
             Grid closestGrid = null;
             double gridPos = 0;
-            if (settings.IsDimGridEnabled) closestGrid = FindClosestParallelGrid(allGrids, safeMeasureDir, fi.GetTransform().Origin, out gridPos);
+            if (settings.IsDimGridEnabled)
+                closestGrid = FindClosestParallelGrid(allGrids, safeMeasureDir, fi.GetTransform().Origin, out gridPos);
 
             double geomMaxProj = GetMaxProjection(fi, offsetDir);
             double centerProj = fi.GetTransform().Origin.DotProduct(offsetDir);
@@ -86,13 +100,30 @@ namespace ColumnAutoDim.Revit
             else
             {
                 Reference rGrid = new Reference(closestGrid);
+
+                // ========================================================
+                // FIX BUG 2: Check grid có đi qua tâm cột không
+                // Nếu có → chỉ tạo 1 dim (grid + 2 faces), KHÔNG tạo 2 lớp
+                // ========================================================
+                double distGridToCenter = Math.Abs(gridPos - centerPosOnMeasure);
+                bool gridAtCenter = distGridToCenter < GRID_AT_CENTER_TOLERANCE;
+
                 if (isCenterDim)
                 {
-                    double distToGrid = Math.Abs(gridPos - centerPosOnMeasure);
-                    if (distToGrid > ZERO_DIM_TOLERANCE) { refArray1.Append(rGrid); refArray1.Append(ref1); }
+                    if (distGridToCenter > ZERO_DIM_TOLERANCE)
+                    {
+                        refArray1.Append(rGrid); refArray1.Append(ref1);
+                    }
+                }
+                else if (gridAtCenter)
+                {
+                    // Grid đi qua tâm cột → chỉ tạo 1 dim chain: grid + 2 faces
+                    // Không cần dim riêng cho cột vì grid dim đã bao gồm
+                    refArray1.Append(rGrid); refArray1.Append(ref1); refArray1.Append(ref2);
                 }
                 else
                 {
+                    // Grid KHÔNG trùng tâm → tạo 2 lớp dim khác nhau
                     refArray1.Append(ref1); refArray1.Append(ref2);
                     isCutting = true;
                     refArray2.Append(rGrid); refArray2.Append(ref1); refArray2.Append(ref2);
@@ -109,10 +140,12 @@ namespace ColumnAutoDim.Revit
         {
             if (refs.Size < 2) return;
             XYZ dimOrigin = center + offsetDir * offsetLen;
-            double viewZ = dimOrigin.Z;
-            if (view is ViewPlan vp && vp.GenLevel != null) viewZ = vp.GenLevel.Elevation; else viewZ = view.Origin.Z;
+            double viewZ;
+            if (view is ViewPlan vp && vp.GenLevel != null) viewZ = vp.GenLevel.Elevation;
+            else viewZ = view.Origin.Z;
             XYZ pointOnView = new XYZ(dimOrigin.X, dimOrigin.Y, viewZ);
-            XYZ p1 = pointOnView - measureDir * 5.0; XYZ p2 = pointOnView + measureDir * 5.0;
+            XYZ p1 = pointOnView - measureDir * 5.0;
+            XYZ p2 = pointOnView + measureDir * 5.0;
             try
             {
                 Line dimLine = Line.CreateBound(p1, p2);
@@ -122,6 +155,60 @@ namespace ColumnAutoDim.Revit
             catch { }
         }
 
+        // ========================================================
+        // FIX BUG 1: Stable references — ưu tiên fi.GetReferences()
+        // Đây là cách đáng tin cậy nhất để lấy reference cho dim
+        // ========================================================
+        private static bool GetStableExtentReferences(FamilyInstance fi, XYZ measureDir, out Reference rMin, out Reference rMax)
+        {
+            rMin = rMax = null;
+            try
+            {
+                Transform tr = fi.GetTransform();
+                double dotX = Math.Abs(measureDir.DotProduct(tr.BasisX.Normalize()));
+                double dotY = Math.Abs(measureDir.DotProduct(tr.BasisY.Normalize()));
+
+                IList<Reference> refsA, refsB;
+                if (dotX > dotY)
+                {
+                    refsA = fi.GetReferences(FamilyInstanceReferenceType.Left);
+                    refsB = fi.GetReferences(FamilyInstanceReferenceType.Right);
+                }
+                else
+                {
+                    refsA = fi.GetReferences(FamilyInstanceReferenceType.Front);
+                    refsB = fi.GetReferences(FamilyInstanceReferenceType.Back);
+                }
+
+                if (refsA != null && refsA.Count > 0 && refsB != null && refsB.Count > 0)
+                {
+                    rMin = refsA.First();
+                    rMax = refsB.First();
+                    return true;
+                }
+
+                // Thử thêm Strong/Weak references nếu Left/Right/Front/Back không có
+                var strongRefs = fi.GetReferences(FamilyInstanceReferenceType.StrongReference);
+                if (strongRefs != null && strongRefs.Count >= 2)
+                {
+                    // Lọc strong refs song song với measureDir
+                    var filtered = new List<Reference>();
+                    foreach (var r in strongRefs)
+                    {
+                        filtered.Add(r);
+                    }
+                    if (filtered.Count >= 2)
+                    {
+                        rMin = filtered[0];
+                        rMax = filtered[1];
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private static Reference GetCenterReference(FamilyInstance fi, XYZ measureDir)
         {
             try
@@ -129,7 +216,9 @@ namespace ColumnAutoDim.Revit
                 Transform tr = fi.GetTransform();
                 double dotX = Math.Abs(measureDir.DotProduct(tr.BasisX.Normalize()));
                 double dotY = Math.Abs(measureDir.DotProduct(tr.BasisY.Normalize()));
-                FamilyInstanceReferenceType refType = (dotX > dotY) ? FamilyInstanceReferenceType.CenterLeftRight : FamilyInstanceReferenceType.CenterFrontBack;
+                FamilyInstanceReferenceType refType = (dotX > dotY)
+                    ? FamilyInstanceReferenceType.CenterLeftRight
+                    : FamilyInstanceReferenceType.CenterFrontBack;
                 return fi.GetReferences(refType).FirstOrDefault();
             }
             catch { return null; }
@@ -158,75 +247,71 @@ namespace ColumnAutoDim.Revit
             }
             double z = (view is ViewPlan vp && vp.GenLevel != null) ? vp.GenLevel.Elevation : view.Origin.Z;
             locationPt = new XYZ(locationPt.X, locationPt.Y, z);
-            try { Reference refCol = new Reference(fi); IndependentTag.Create(doc, tagType.Id, view.Id, refCol, false, TagOrientation.Horizontal, locationPt); } catch { }
+            try
+            {
+                Reference refCol = new Reference(fi);
+                IndependentTag.Create(doc, tagType.Id, view.Id, refCol, false, TagOrientation.Horizontal, locationPt);
+            }
+            catch { }
         }
 
         private static Grid FindClosestParallelGrid(List<Grid> grids, XYZ measureDir, XYZ center, out double gridPosProj)
         {
-            Grid bestGrid = null; double minInfoDist = double.MaxValue; gridPosProj = 0;
+            Grid bestGrid = null; double minDist = double.MaxValue; gridPosProj = 0;
+            XYZ normDir = measureDir.Normalize();
             foreach (var g in grids)
             {
                 if (g.Curve is Line gridLine)
                 {
                     if (!IsPerpendicular(gridLine.Direction, measureDir)) continue;
-                    double pos = gridLine.Origin.DotProduct(measureDir.Normalize());
-                    double dist = Math.Abs(pos - center.DotProduct(measureDir.Normalize()));
-                    if (dist < minInfoDist) { minInfoDist = dist; bestGrid = g; gridPosProj = pos; }
+                    double pos = gridLine.Origin.DotProduct(normDir);
+                    double dist = Math.Abs(pos - center.DotProduct(normDir));
+                    if (dist < minDist) { minDist = dist; bestGrid = g; gridPosProj = pos; }
                 }
             }
             return bestGrid;
         }
 
+        // Geometry face extraction — fallback khi GetReferences không có
         private static bool GetExtremeFaces(FamilyInstance fi, XYZ offsetDir, out Reference rMin, out Reference rMax)
         {
             rMin = rMax = null;
             XYZ measureDir = new XYZ(-offsetDir.Y, offsetDir.X, 0).Normalize();
             var faces = CollectPlanarFaces(fi);
-            var candidates = faces.Where(f => IsParallel(f.FaceNormal, measureDir)).ToList();
+            // Chỉ lấy faces có reference hợp lệ
+            var candidates = faces.Where(f => f.Reference != null && IsParallel(f.FaceNormal, measureDir)).ToList();
             if (candidates.Count >= 2)
             {
-                double minV = double.MaxValue, maxV = double.MinValue; PlanarFace fMin = null, fMax = null;
+                double minV = double.MaxValue, maxV = double.MinValue;
+                PlanarFace fMin = null, fMax = null;
                 foreach (var f in candidates)
                 {
                     double p = f.Origin.DotProduct(measureDir);
                     if (p < minV) { minV = p; fMin = f; }
                     if (p > maxV) { maxV = p; fMax = f; }
                 }
-                if (fMin != null && fMax != null) { rMin = fMin.Reference; rMax = fMax.Reference; return true; }
-            }
-            return GetFamilyInstanceExtentReferences(fi, measureDir, out rMin, out rMax);
-        }
-
-        private static bool GetFamilyInstanceExtentReferences(FamilyInstance fi, XYZ measureDir, out Reference rMin, out Reference rMax)
-        {
-            rMin = rMax = null;
-            try
-            {
-                Transform tr = fi.GetTransform();
-                double dotX = Math.Abs(measureDir.DotProduct(tr.BasisX.Normalize()));
-                double dotY = Math.Abs(measureDir.DotProduct(tr.BasisY.Normalize()));
-                
-                if (dotX > dotY)
+                if (fMin != null && fMax != null && fMin.Reference != null && fMax.Reference != null)
                 {
-                    rMin = fi.GetReferences(FamilyInstanceReferenceType.Left).FirstOrDefault();
-                    rMax = fi.GetReferences(FamilyInstanceReferenceType.Right).FirstOrDefault();
+                    rMin = fMin.Reference; rMax = fMax.Reference;
+                    return true;
                 }
-                else
-                {
-                    rMin = fi.GetReferences(FamilyInstanceReferenceType.Front).FirstOrDefault();
-                    rMax = fi.GetReferences(FamilyInstanceReferenceType.Back).FirstOrDefault();
-                }
-                return rMin != null && rMax != null;
             }
-            catch { return false; }
+            return false;
         }
 
         private static double GetMaxProjection(FamilyInstance fi, XYZ dir)
         {
             double maxV = double.MinValue; dir = dir.Normalize();
-            foreach (var f in CollectPlanarFaces(fi)) { if (IsParallel(f.FaceNormal, dir)) { double p = f.Origin.DotProduct(dir); if (p > maxV) maxV = p; } }
+            foreach (var f in CollectPlanarFaces(fi))
+            {
+                if (IsParallel(f.FaceNormal, dir))
+                {
+                    double p = f.Origin.DotProduct(dir);
+                    if (p > maxV) maxV = p;
+                }
+            }
             if (maxV != double.MinValue) return maxV;
-            
+
             BoundingBoxXYZ bbox = fi.get_BoundingBox(null);
             if (bbox != null)
             {
@@ -257,12 +342,21 @@ namespace ColumnAutoDim.Revit
                 foreach (GeometryObject o in ge)
                 {
                     if (o is Solid s) AddFaces(s, list);
-                    else if (o is GeometryInstance gi) foreach (GeometryObject o2 in gi.GetInstanceGeometry()) if (o2 is Solid s2) AddFaces(s2, list);
+                    else if (o is GeometryInstance gi)
+                        foreach (GeometryObject o2 in gi.GetInstanceGeometry())
+                            if (o2 is Solid s2) AddFaces(s2, list);
                 }
             }
             return list;
         }
-        private static void AddFaces(Solid s, List<PlanarFace> list) { foreach (Face f in s.Faces) if (f is PlanarFace pf) list.Add(pf); }
+
+        private static void AddFaces(Solid s, List<PlanarFace> list)
+        {
+            if (s.Volume < 1e-9) return; // skip empty solids
+            foreach (Face f in s.Faces)
+                if (f is PlanarFace pf) list.Add(pf);
+        }
+
         private static void GetVisualAxes(XYZ v1, XYZ v2, out XYZ visualRight, out XYZ visualUp)
         {
             if (Math.Abs(v1.X) > Math.Abs(v2.X))
@@ -276,6 +370,7 @@ namespace ColumnAutoDim.Revit
                 visualUp = v1.Y > 0 ? v1 : -v1;
             }
         }
+
         private static bool IsParallel(XYZ v1, XYZ v2) => Math.Abs(Math.Abs(v1.Normalize().DotProduct(v2.Normalize())) - 1.0) < TOLERANCE;
         private static bool IsPerpendicular(XYZ v1, XYZ v2) => Math.Abs(v1.Normalize().DotProduct(v2.Normalize())) < TOLERANCE;
     }

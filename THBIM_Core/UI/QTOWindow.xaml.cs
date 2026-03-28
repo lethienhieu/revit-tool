@@ -203,9 +203,8 @@ namespace THBIM.UI
         {
             var saveFileDialog = new SaveFileDialog
             {
-                // 👇 ĐỔI ĐUÔI FILE THÀNH .CSV
-                Filter = "CSV File|*.csv|Text File|*.txt",
-                FileName = "QuickMechanicalQTO_Export.csv"
+                Filter = "Excel File|*.xlsx",
+                FileName = "MechanicalQTO_Export.xlsx"
             };
 
             if (saveFileDialog.ShowDialog() == true)
@@ -243,8 +242,7 @@ namespace THBIM.UI
                         return;
                     }
 
-                    // 👇 GỌI HÀM MỚI (ExcelExporter.ExportToCsv)
-                    ExcelExporter.ExportToCsv(dataMap, filePath);
+                    ExcelExporter.ExportToExcel(dataMap, filePath);
 
                     MessageBox.Show("Export successful! You can open the file with Excel.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 

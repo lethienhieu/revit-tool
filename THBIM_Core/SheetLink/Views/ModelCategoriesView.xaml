@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Annotations;component/SheetLink/Styles/SheetLinkStyles.xaml"/>
+                <ResourceDictionary Source="/THBIM;component/SheetLink/Styles/SheetLinkStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
         <Style x:Key="SbThumb" TargetType="Thumb">
