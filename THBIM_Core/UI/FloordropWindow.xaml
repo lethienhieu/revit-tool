@@ -76,6 +76,12 @@
                 </Border>
 
                 <StackPanel Margin="20,15,20,20">
+
+                    <!-- Preview Illustration -->
+                    <Border Background="#FFFAF5EE" CornerRadius="6" BorderBrush="{StaticResource LightBorder}" BorderThickness="1" Padding="0" Margin="0,0,0,14">
+                        <Canvas x:Name="previewCanvas" Height="180" ClipToBounds="True" Loaded="PreviewCanvas_Loaded"/>
+                    </Border>
+
                     <Button x:Name="btnUpdate"
                             Content="UPDATE ALL IN VIEW"
                             Style="{StaticResource PrimaryButton}"

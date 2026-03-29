@@ -64,9 +64,10 @@ namespace THBIM
             if (string.IsNullOrEmpty(lastProfile)) return;
             if (!_profilePaths.TryGetValue(lastProfile, out string path)) return;
 
+            // Chỉ set tên combobox (suppress), rồi apply data thủ công
+            // KHÔNG dùng SelectionChanged vì timing issue
             try
             {
-                // Chọn tên trong combobox (suppress để không trigger SelectionChanged lần nữa)
                 _suppressProfileSelection = true;
                 foreach (System.Windows.Controls.ComboBoxItem ci in CboProfiles.Items)
                 {
@@ -76,14 +77,16 @@ namespace THBIM
                         break;
                     }
                 }
-                _suppressProfileSelection = false;
 
-                // Apply profile data
                 string content = File.ReadAllText(path);
                 var data = ParseTxtProfile(content);
                 if (data != null) ApplyTxtProfileToUI(data);
             }
-            catch { _suppressProfileSelection = false; }
+            catch { }
+            finally
+            {
+                _suppressProfileSelection = false;
+            }
         }
 
         private string GetViewTypeName(DB.View v)

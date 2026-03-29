@@ -540,7 +540,7 @@ namespace OPENING.MODEL
         {
             if (levelId == ElementId.InvalidElementId) return;
 
-            BuiltInParameter[] candidates = new[]
+            var candidates = new List<BuiltInParameter>
             {
                 BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM,
                 BuiltInParameter.LEVEL_PARAM,

@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Electrical;
 using Autodesk.Revit.DB.Mechanical;
@@ -374,4 +373,3 @@ internal static class DirectionalOffsetService
 
     #endregion
 }
-#endif

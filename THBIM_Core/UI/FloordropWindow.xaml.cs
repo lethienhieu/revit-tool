@@ -233,5 +233,108 @@ namespace THBIM.Tools.UI
                     return p;
             return null;
         }
+        // ======================================================
+        // PREVIEW CANVAS — vẽ theo geometry thực tế của family
+        // Family gồm: 3 Drop Lines (hình chữ L), 11 Drop Symbol (hatch), Text label
+        // ======================================================
+        private void PreviewCanvas_Loaded(object sender, RoutedEventArgs e)
+        {
+            DrawPreview();
+        }
+
+        private void DrawPreview()
+        {
+            previewCanvas.Children.Clear();
+            double w = previewCanvas.ActualWidth > 0 ? previewCanvas.ActualWidth : 400;
+            double h = previewCanvas.ActualHeight > 0 ? previewCanvas.ActualHeight : 180;
+
+            // Background = dark like Revit
+            previewCanvas.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 50, 60));
+
+            // Family geometry from MCP readout (mm units, Y-up → canvas Y-down)
+            // Origin = (0,0), Drop Lines: L-shape, Drop Symbol: hatch lines, Text: "150" at (-0.5, 2.1)
+            // Scale + offset to fit canvas center
+            double scale = h / 5.0; // family spans ~5mm height, fit to canvas
+            double cx = w * 0.5;    // center X
+            double cy = h * 0.5;    // center Y
+
+            // Transform: family mm → canvas px (flip Y)
+            Func<double, double, System.Windows.Point> toCanvas = (fx, fy) =>
+                new System.Windows.Point(cx + fx * scale, cy - fy * scale);
+
+            var dropLineBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 60, 60));
+            var hatchBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(180, 180, 180));
+            var textColor = System.Windows.Media.Colors.White;
+            var refBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 200, 80));
+
+            // === Drop Lines (red L-shape) ===
+            // Horizontal top: (0, 1.7) → (2.6, 1.7)
+            DrawFamilyLine(toCanvas(0, 1.7), toCanvas(2.6, 1.7), dropLineBrush, 2);
+            // Horizontal bottom: (-2.4, 0.7) → (0, 0.7)
+            DrawFamilyLine(toCanvas(-2.4, 0.7), toCanvas(0, 0.7), dropLineBrush, 2);
+            // Vertical: (0, 0.7) → (0, 1.7)
+            DrawFamilyLine(toCanvas(0, 0.7), toCanvas(0, 1.7), dropLineBrush, 2);
+
+            // === Drop Symbol (hatch lines — gray diagonal) ===
+            double[][] hatchLines = new double[][] {
+                new[] {-2.4, 0.7, -1.4, -0.3},
+                new[] {-1.9, 0.7, -0.9, -0.3},
+                new[] {-1.3, 0.7, -0.3, -0.3},
+                new[] {-0.7, 0.7,  0.3, -0.3},
+                new[] {-0.2, 0.7,  0.8, -0.3},
+                new[] { 0.0, 1.1,  1.0,  0.1},
+                new[] {-0.0, 1.7,  1.0,  0.7},
+                new[] { 0.6, 1.7,  1.6,  0.7},
+                new[] { 1.1, 1.7,  2.1,  0.7},
+                new[] { 1.7, 1.7,  2.7,  0.7},
+                new[] { 2.2, 1.7,  3.0,  1.0},
+            };
+            foreach (var ln in hatchLines)
+                DrawFamilyLine(toCanvas(ln[0], ln[1]), toCanvas(ln[2], ln[3]), hatchBrush, 1);
+
+            // === Text "150" ===
+            var txt = new System.Windows.Controls.TextBlock
+            {
+                Text = "150",
+                FontSize = scale * 1.2,
+                FontWeight = FontWeights.Bold,
+                Foreground = new System.Windows.Media.SolidColorBrush(textColor)
+            };
+            var txtPos = toCanvas(-0.5, 2.1);
+            System.Windows.Controls.Canvas.SetLeft(txt, txtPos.X - scale * 0.8);
+            System.Windows.Controls.Canvas.SetTop(txt, txtPos.Y - scale * 0.6);
+            previewCanvas.Children.Add(txt);
+
+            // === Reference planes (dashed green cross) ===
+            // Vertical: x=0
+            DrawFamilyLine(toCanvas(0, -1.5), toCanvas(0, 3), refBrush, 1, true);
+            // Horizontal: y=0
+            DrawFamilyLine(toCanvas(-3.5, 0), toCanvas(4, 0), refBrush, 1, true);
+
+            // === Subtitle ===
+            var sub = new System.Windows.Controls.TextBlock
+            {
+                Text = "LB_WH_CST_SYB_Floor Drop",
+                FontSize = 9,
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(120, 120, 130)),
+                FontStyle = FontStyles.Italic
+            };
+            System.Windows.Controls.Canvas.SetLeft(sub, 8);
+            System.Windows.Controls.Canvas.SetTop(sub, h - 16);
+            previewCanvas.Children.Add(sub);
+        }
+
+        private void DrawFamilyLine(System.Windows.Point p1, System.Windows.Point p2,
+            System.Windows.Media.Brush stroke, double thickness, bool dashed = false)
+        {
+            var line = new System.Windows.Shapes.Line
+            {
+                X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y,
+                Stroke = stroke, StrokeThickness = thickness
+            };
+            if (dashed)
+                line.StrokeDashArray = new System.Windows.Media.DoubleCollection { 6, 4 };
+            previewCanvas.Children.Add(line);
+        }
     }
 }

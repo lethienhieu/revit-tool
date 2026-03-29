@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Electrical;
 using Autodesk.Revit.DB.Mechanical;
@@ -58,7 +57,7 @@ internal static class ConnectorUtils
             .Where(c => c.IsConnected)
             .SelectMany(c => c.AllRefs.Cast<Connector>())
             .Where(c => c.Owner.Id != element.Id)
-            .DistinctBy(c => c.Owner.Id.Value);
+            .GroupBy(c => c.Owner.Id.GetValue()).Select(g => g.First());
 
     /// <summary>Disconnect all connectors on the given element from neighbours.</summary>
     public static bool TryDisconnectAll(Element element)
@@ -91,7 +90,7 @@ internal static class ConnectorUtils
         var result = new List<Element>();
         var queue = new Queue<Element>();
         queue.Enqueue(seed);
-        visited.Add(seed.Id.Value);
+        visited.Add(seed.Id.GetValue());
 
         while (queue.Count > 0)
         {
@@ -100,7 +99,7 @@ internal static class ConnectorUtils
 
             foreach (var neighbour in GetConnectedNeighbours(current))
             {
-                if (visited.Add(neighbour.Owner.Id.Value))
+                if (visited.Add(neighbour.Owner.Id.GetValue()))
                 {
                     queue.Enqueue(neighbour.Owner);
                 }
@@ -113,4 +112,3 @@ internal static class ConnectorUtils
     public static Domain? GetDomain(Element element)
         => ToList(element).FirstOrDefault(IsUsable)?.Domain;
 }
-#endif

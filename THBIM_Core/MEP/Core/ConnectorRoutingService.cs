@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
@@ -131,4 +130,3 @@ internal static class ConnectorRoutingService
         catch { return false; }
     }
 }
-#endif

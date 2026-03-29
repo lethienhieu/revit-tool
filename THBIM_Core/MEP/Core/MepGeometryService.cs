@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
@@ -267,4 +266,3 @@ internal static class MepGeometryService
         return null;
     }
 }
-#endif

@@ -254,14 +254,6 @@ namespace THBIM
                 .Select(b => b.Tag as ParameterItem)
                 .Where(p => p != null)
                 .ToList();
-            if (!toMove.Any())
-            {
-                toMove = SpAvail.Children.OfType<Border>()
-                    .Where(b => b.Visibility == Visibility.Visible)
-                    .Select(b => b.Tag as ParameterItem)
-                    .Where(p => p != null)
-                    .ToList();
-            }
             foreach (var p in toMove)
                 MoveToSelected(p);
         }
@@ -272,14 +264,6 @@ namespace THBIM
                 .Select(b => b.Tag as ParameterItem)
                 .Where(p => p != null)
                 .ToList();
-            if (!toMove.Any())
-            {
-                toMove = SpSel.Children.OfType<Border>()
-                    .Where(b => b.Visibility == Visibility.Visible)
-                    .Select(b => b.Tag as ParameterItem)
-                    .Where(p => p != null)
-                    .ToList();
-            }
             foreach (var p in toMove)
                 MoveToAvailable(p);
         }

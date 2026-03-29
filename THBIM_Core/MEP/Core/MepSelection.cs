@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
@@ -71,4 +70,3 @@ internal static class MepSelection
     public static bool IsFamilyInstance(Element element)
         => element is FamilyInstance fi && fi.MEPModel is not null;
 }
-#endif

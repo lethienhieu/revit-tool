@@ -172,63 +172,78 @@ namespace THBIM
 
             ColorizePanel(tab, panelStructName, "#E38888");
 
-#if NET8_0_OR_GREATER
             // ==========================================
             // TH TOOLS MEP TAB (MEP Accelerator)
             // ==========================================
-            try
-            {
-                RegisterMepTab(app, asm, dir);
-            }
-            catch { }
-#endif
+            try { RegisterMepTab(app, asm, dir); } catch { }
 
             return Result.Succeeded;
         }
 
-#if NET8_0_OR_GREATER
         private void RegisterMepTab(UIControlledApplication app, string asm, string dir)
         {
             const string mepTab = "TH Tools MEP";
             try { app.CreateRibbonTab(mepTab); } catch { }
+            string mepIconDir = Path.Combine(dir, "Resources", "MEP");
 
-            foreach (var (panelName, items) in THBIM.MEP.Core.SuiteDefinition.Panels)
-            {
-                var panel = app.CreateRibbonPanel(mepTab, panelName);
-                foreach (var item in items)
-                {
-                    if (item.Command is not null)
-                        panel.AddItem(THBIM.MEP.Core.UiHelpers.CreateButtonData(item.Command));
-                    else if (item.SplitGroup is not null)
-                        AddMepSplitButton(panel, item.SplitGroup);
-                }
-            }
-
+            // --- LT Create ---
+            var pCreate = app.CreateRibbonPanel(mepTab, "LT Create");
+            pCreate.AddItem(MepBtn("Bloom", "Bloom", asm, "THBIM.MEP.Commands.BloomCommand", mepIconDir, "Bloom32.png"));
+            pCreate.AddItem(MepBtn("Tap", "Tap", asm, "THBIM.MEP.Commands.TapCommand", mepIconDir, "Tap32.png"));
+            pCreate.AddItem(MepBtn("ElbowDown45", "Elbow Down 45", asm, "THBIM.MEP.Commands.ElbowDown45Command", mepIconDir, "ElbowDown4532.png"));
+            pCreate.AddItem(MepBtn("ElbowRight", "Elbow Right", asm, "THBIM.MEP.Commands.ElbowRightCommand", mepIconDir, "ElbowRight32.png"));
+            pCreate.AddItem(MepBtn("ElbowDown", "Elbow Down", asm, "THBIM.MEP.Commands.ElbowDownCommand", mepIconDir, "ElbowDown32.png"));
+            pCreate.AddItem(MepBtn("ElbowLeft", "Elbow Left", asm, "THBIM.MEP.Commands.ElbowLeftCommand", mepIconDir, "ElbowLeft32.png"));
+            pCreate.AddItem(MepBtn("ElbowUp", "Elbow Up", asm, "THBIM.MEP.Commands.ElbowUpCommand", mepIconDir, "ElbowUp32.png"));
             ColorizePanel(mepTab, "LT Create", "#64B5F6");
+
+            // --- LT Modify ---
+            var pModify = app.CreateRibbonPanel(mepTab, "LT Modify");
+            pModify.AddItem(MepBtn("FlipMultiple", "Flip Multiple", asm, "THBIM.MEP.Commands.FlipMultipleCommand", mepIconDir, "Microdesk.FlipMultiple32.png"));
+            var rotateData = new SplitButtonData("RotateFittings", "Rotate");
+            var rotateSplit = pModify.AddItem(rotateData) as SplitButton;
+            if (rotateSplit != null)
+            {
+                string rotIcon = Path.Combine(mepIconDir, "RotateFitting32.png");
+                if (File.Exists(rotIcon)) { var img = new BitmapImage(new Uri(rotIcon)); rotateSplit.Image = img; rotateSplit.LargeImage = img; }
+                rotateSplit.AddPushButton(MepBtn("Rotate30", "Rotate 30°", asm, "THBIM.MEP.Commands.RotateFitting30Command", mepIconDir, "RotateFitting32.png"));
+                rotateSplit.AddPushButton(MepBtn("Rotate45", "Rotate 45°", asm, "THBIM.MEP.Commands.RotateFitting45Command", mepIconDir, "RotateFitting32.png"));
+                rotateSplit.AddPushButton(MepBtn("Rotate60", "Rotate 60°", asm, "THBIM.MEP.Commands.RotateFitting60Command", mepIconDir, "RotateFitting32.png"));
+                rotateSplit.AddPushButton(MepBtn("Rotate75", "Rotate 75°", asm, "THBIM.MEP.Commands.RotateFitting75Command", mepIconDir, "RotateFitting32.png"));
+                rotateSplit.AddPushButton(MepBtn("Rotate90", "Rotate 90°", asm, "THBIM.MEP.Commands.RotateFitting90Command", mepIconDir, "RotateFitting32.png"));
+            }
+            pModify.AddItem(MepBtn("DeleteSystem", "Delete System", asm, "THBIM.MEP.Commands.DeleteSystemCommand", mepIconDir, "DeleteSystem32.png"));
+            pModify.AddItem(MepBtn("Disconnect", "Disconnect", asm, "THBIM.MEP.Commands.DisconnectCommand", mepIconDir, "Disconnect32.png"));
+            pModify.AddItem(MepBtn("MoveConnect", "Move Connect", asm, "THBIM.MEP.Commands.MoveConnectCommand", mepIconDir, "MoveConnect32.png"));
+            pModify.AddItem(MepBtn("MoveConnectAlign", "Mo-Co Align", asm, "THBIM.MEP.Commands.MoveConnectAlignCommand", mepIconDir, "MoveConnectAlign32.png"));
             ColorizePanel(mepTab, "LT Modify", "#FFB74D");
+
+            // --- LT Align ---
+            var pAlign = app.CreateRibbonPanel(mepTab, "LT Align");
+            pAlign.AddItem(MepBtn("Align3D", "Align in 3D", asm, "THBIM.MEP.Commands.AlignIn3DCommand", mepIconDir, "AlignIn3D32.png"));
+            pAlign.AddItem(MepBtn("AlignBranch", "Align Branch", asm, "THBIM.MEP.Commands.AlignBranchCommand", mepIconDir, "BranchAlignLite32.png"));
+            pAlign.AddItem(MepBtn("AlignBranchPlus", "Align Branch+", asm, "THBIM.MEP.Commands.AlignBranchPlusCommand", mepIconDir, "BranchAlign32.png"));
             ColorizePanel(mepTab, "LT Align", "#81C784");
+
+            // --- LT Tools ---
+            var pTools = app.CreateRibbonPanel(mepTab, "LT Tools");
+            pTools.AddItem(MepBtn("SumParam", "Sum Param.", asm, "THBIM.MEP.Commands.SumParameterCommand", mepIconDir, "Sum32.png"));
+            pTools.AddItem(MepBtn("Section", "Section", asm, "THBIM.MEP.Commands.SectionCommand", mepIconDir, "Section32.png"));
             ColorizePanel(mepTab, "LT Tools", "#BA68C8");
         }
 
-        private void AddMepSplitButton(RibbonPanel panel, THBIM.MEP.Core.SplitButtonGroup group)
+        private static PushButtonData MepBtn(string name, string text, string asm, string className, string iconDir, string iconFile)
         {
-            var splitData = new SplitButtonData(group.InternalName, group.DisplayName);
-            var splitButton = panel.AddItem(splitData) as SplitButton;
-            if (splitButton == null) return;
-
-            string asmDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
-            string iconPath = Path.Combine(asmDir, "Resources", "MEP", group.IconFile);
-            if (File.Exists(iconPath))
+            var btn = new PushButtonData(name, text, asm, className);
+            string path = Path.Combine(iconDir, iconFile);
+            if (File.Exists(path))
             {
-                var image = new BitmapImage(new Uri(iconPath));
-                splitButton.Image = image;
-                splitButton.LargeImage = image;
+                var img = new BitmapImage(new Uri(path));
+                btn.Image = img;
+                btn.LargeImage = img;
             }
-
-            foreach (var cmd in group.Items)
-                splitButton.AddPushButton(THBIM.MEP.Core.UiHelpers.CreateButtonData(cmd));
+            return btn;
         }
-#endif
 
         public Result OnShutdown(UIControlledApplication app)
         {

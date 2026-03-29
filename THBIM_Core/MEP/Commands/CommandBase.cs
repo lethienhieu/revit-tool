@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
@@ -36,4 +35,3 @@ public abstract class CommandBase : IExternalCommand
     protected static UIDocument GetUiDoc(ExternalCommandData data) => data.Application.ActiveUIDocument;
     protected static Document GetDoc(ExternalCommandData data) => GetUiDoc(data).Document;
 }
-#endif

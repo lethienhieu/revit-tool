@@ -777,13 +777,14 @@ namespace OPENING.MODEL
         private static void TrySetScheduleLevel(Document doc, FamilyInstance inst, ElementId levelId)
         {
             if (levelId == ElementId.InvalidElementId) return;
-            foreach (var bip in new[]
+            var candidates = new List<BuiltInParameter>
             {
                 BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM,
                 BuiltInParameter.LEVEL_PARAM,
                 BuiltInParameter.FAMILY_LEVEL_PARAM,
                 BuiltInParameter.SCHEDULE_LEVEL_PARAM
-            })
+            };
+            foreach (var bip in candidates)
             {
                 Parameter p = inst.get_Parameter(bip);
                 if (p != null && !p.IsReadOnly)

@@ -45,4 +45,9 @@
     </Reference>
   </ItemGroup>
 
+  <!-- Code Sign (Release only) -->
+  <Target Name="SignAssembly" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="powershell -NoProfile -Command &quot;$$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $$_.Subject -eq 'CN=TH BIM' }; if ($$cert) { Set-AuthenticodeSignature -FilePath '$(TargetPath)' -Certificate $$cert[0] }&quot;" IgnoreExitCode="true" />
+  </Target>
+
 </Project>

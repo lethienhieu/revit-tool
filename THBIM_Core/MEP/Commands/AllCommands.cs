@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
@@ -607,7 +606,7 @@ public sealed class SectionCommand : CommandBase
         var hd = Math.Max(size.GetLength() * 0.5, 1.0);
         var section = ViewSection.CreateSection(doc, sectionType.Id,
             new BoundingBoxXYZ { Transform = t, Min = new XYZ(-hw, -hh, -hd), Max = new XYZ(hw, hh, hd) });
-        section.Name = $"MEP Section {element.Id.Value}";
+        section.Name = $"MEP Section {element.Id.GetValue()}";
         tx.Commit();
 
         uidoc.ActiveView = section;
@@ -616,4 +615,3 @@ public sealed class SectionCommand : CommandBase
 }
 
 #endregion
-#endif
