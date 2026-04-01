@@ -219,5 +219,5 @@ THBIM-RevitTools.zip
 
 ## Current Versions (as of 2026-03-31)
 
-- Addin: v1.1.3
+- Addin: v1.1.4
 - App: v1.0.8

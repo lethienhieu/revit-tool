@@ -30,10 +30,5 @@
     <ProjectReference Include="..\THBIM.Contracts\THBIM.Contracts.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Resources\**\*.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 
 </Project>
