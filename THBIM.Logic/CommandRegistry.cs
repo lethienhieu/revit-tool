@@ -58,6 +58,7 @@ internal static class CommandRegistry
         // ==========================================
         // Structure panel
         // ==========================================
+        ["CallUIStructureSync"] = typeof(THBIM.CallUIStructureSync),
         ["CallUIDP"] = typeof(THBIM.CallUIDP),
         ["CallUISplit"] = typeof(THBIM.CallUISplit),
         ["CallUILV"] = typeof(THBIM.CallUILV),

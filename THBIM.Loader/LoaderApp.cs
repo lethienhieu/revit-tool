@@ -183,13 +183,17 @@ public class LoaderApp : IExternalApplication
         string iconSPLIT16 = Path.Combine(dir, "Resources", "Splitcol_16.png");
         string iconLV16 = Path.Combine(dir, "Resources", "LevelRehost_16.png");
         string iconATP16 = Path.Combine(dir, "Resources", "AutoPile_16.png");
+        string iconStructureSync32 = Path.Combine(dir, "Resources", "StructureSync_32.png");
 
         var pbDP = new PushButtonData("AutoDropPanel_Run", "Create DropPanel", asm, ns + "Proxy_CallUIDP") { ToolTip = "Automatically create Drop Panel or Pile Cap.", LargeImage = LoadIcon(iconDP32) };
         var pbSplitCol = new PushButtonData("SplitColumnl_Run", "Split Columnl", asm, ns + "Proxy_CallUISplit") { ToolTip = "Split columns by floor levels.", Image = LoadIcon(iconSPLIT16) };
         var pbLV = new PushButtonData("LevelRehost_Run", "Level Rehost", asm, ns + "Proxy_CallUILV") { ToolTip = "Move elements to new level while keeping 3D position.", Image = LoadIcon(iconLV16) };
         var pbATP = new PushButtonData("AutoPile_Run", "create Pile", asm, ns + "Proxy_AutoPile") { ToolTip = "Automatically create Piling.", Image = LoadIcon(iconATP16) };
+        var pbStructureSync = new PushButtonData("StructureSync_Run", "Structure\nSync", asm, ns + "Proxy_CallUIStructureSync") { ToolTip = "Manage and synchronize structural element positions between linked and local models.", LargeImage = LoadIcon(iconStructureSync32) };
 
         panel.AddItem(pbDP);
+        panel.AddSeparator();
+        panel.AddItem(pbStructureSync);
         panel.AddSeparator();
         panel.AddStackedItems(pbATP, pbSplitCol, pbLV);
 
