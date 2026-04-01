@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"Remove-Item -Path ''E:\\\\THBIM-CODE\\\\2025\\\\CODE\\\\THBIMv2\\\\.claude\\\\worktrees\\\\blissful-satoshi'' -Recurse -Force -ErrorAction SilentlyContinue; if \\(Test-Path ''E:\\\\THBIM-CODE\\\\2025\\\\CODE\\\\THBIMv2\\\\.claude\\\\worktrees\\\\blissful-satoshi''\\) { Write-Host ''Still exists'' } else { Write-Host ''Deleted OK'' }\")",
+      "Bash(cmd /c \"rd /s /q \"\"E:\\\\THBIM-CODE\\\\2025\\\\CODE\\\\THBIMv2\\\\.claude\\\\worktrees\\\\blissful-satoshi\"\"\")"
+    ]
+  }
+}
