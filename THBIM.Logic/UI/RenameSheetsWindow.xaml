@@ -1,0 +1,197 @@
+﻿<Window x:Class="THBIM.RenameSheetsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rename Sheets" Height="600" Width="850"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Background="#FFFDF8E1" FontFamily="Segoe UI">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Panel trái -->
+        <StackPanel Grid.Column="0" Margin="0,0,20,0" VerticalAlignment="Top">
+            <TextBlock Text="Options" FontWeight="Bold" Foreground="Goldenrod" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Find" Foreground="Goldenrod" Margin="0,0,0,5"/>
+            <TextBox x:Name="txtFind" BorderThickness="0,0,0,2" BorderBrush="Goldenrod"
+               Background="Transparent" Padding="2" Margin="0,0,0,15"
+               TextChanged="FindReplace_TextChanged"/>
+
+            <TextBlock Text="Replace" Foreground="Goldenrod" Margin="0,0,0,5"/>
+            <TextBox x:Name="txtReplace" BorderThickness="0,0,0,2" BorderBrush="Goldenrod"
+               Background="Transparent" Padding="2" Margin="0,0,0,15"
+               TextChanged="FindReplace_TextChanged"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Text="Numbering:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox x:Name="cbNumberingParam" Width="160"
+                  SelectionChanged="cbNumberingParam_SelectionChanged"/>
+
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="8,8,0,0">
+                <TextBlock Text="Start" Width="40" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtNumStart" Width="50" Text="1" Margin="0,0,10,0"/>
+
+                <TextBlock Text="Digits" Width="40" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtNumDigits" Width="40" Text="2"/>
+            </StackPanel>
+            <!-- Auto sheet number -->
+            <StackPanel Margin="0,14,0,0">
+                <TextBlock Text="Auto Sheet Number" FontWeight="SemiBold" Foreground="Goldenrod" />
+                <TextBlock Text="Prefix" Margin="0,6,0,2"/>
+                <TextBox x:Name="txtSNPrefix" BorderThickness="0,0,0,2" BorderBrush="Goldenrod"
+           Background="Transparent" Padding="2" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Start" Width="40" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtSNStart" Width="50" Text="1" Margin="0,0,10,0"/>
+
+                    <TextBlock Text="Digits" Width="40" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtSNDigits" Width="40" Text="2"/>
+                </StackPanel>
+
+                <CheckBox x:Name="cbSNSelected" Content="Only selected rows" Margin="0,8,0,6"/>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="btnDetectPrefix" Content="Detect" Width="70" Margin="0,0,8,0"
+            Click="btnDetectPrefix_Click"/>
+                    <Button x:Name="btnApplySeq" Content="Apply to Sheet Numbers" Width="160"
+            Click="btnApplySeq_Click"/>
+                </StackPanel>
+            </StackPanel>
+
+        </StackPanel>
+
+        <!-- Cột phải -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Radio + 4 nút điều hướng -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <RadioButton x:Name="rbShowNumber" Content="Number"
+                       GroupName="SheetViewMode"
+                       IsChecked="True"
+                       Checked="rbShowNumber_Checked"
+                       Margin="0,0,20,0"/>
+                    <RadioButton x:Name="rbShowName" Content="Name"
+                       GroupName="SheetViewMode"
+                       Checked="rbShowName_Checked"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                    <Button Width="28" Height="24" Margin="2" ToolTip="Move to top"   Click="MoveTop_Click">
+                        <TextBlock Text="⏫" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                    <Button Width="28" Height="24" Margin="2" ToolTip="Move up"       Click="MoveUp_Click">
+                        <TextBlock Text="▲"  FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                    <Button Width="28" Height="24" Margin="2" ToolTip="Move down"     Click="MoveDown_Click">
+                        <TextBlock Text="▼"  FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                    <Button Width="28" Height="24" Margin="2" ToolTip="Move to bottom" Click="MoveBottom_Click">
+                        <TextBlock Text="⏬" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- DataGrid: tự scroll, virtualization; chọn nhiều hàng; highlight xanh dương nhạt -->
+            <DataGrid x:Name="dgSheets" Grid.Row="1"
+                AutoGenerateColumns="False"
+                HeadersVisibility="Column"
+                BorderBrush="Blue" BorderThickness="1"
+                CanUserAddRows="False" CanUserDeleteRows="False"
+                SelectionMode="Extended"
+                SelectionUnit="FullRow"
+                ClipboardCopyMode="IncludeHeader"
+                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                ScrollViewer.CanContentScroll="True"
+                VirtualizingPanel.IsVirtualizing="True"
+                VirtualizingPanel.VirtualizationMode="Recycling"
+                EnableRowVirtualization="True"
+                Sorting="dgSheets_Sorting">
+                <DataGrid.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black"/>
+                </DataGrid.Resources>
+
+                <!-- tô màu khi chọn -->
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Foreground" Value="Black"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#D6EBFF"/>
+                                <!-- xanh dương nhạt -->
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <!-- STT -->
+                    <DataGridTemplateColumn Header="STT" Width="70" SortMemberPath="NumberingValue">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding NumberingValue}" IsReadOnly="True"
+                         BorderThickness="0" Background="Transparent" Padding="0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Sheet Number -->
+                    <DataGridTemplateColumn x:Name="colSheetNumber" Header="Sheet Number" Width="*"
+                                  SortMemberPath="DisplayNumber">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding DisplayNumber}" IsReadOnly="True"
+                         BorderThickness="0" Background="Transparent" Padding="0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Sheet Name -->
+                    <DataGridTemplateColumn x:Name="colSheetName" Header="Sheet Name" Width="2*"
+                                  Visibility="Collapsed"
+                                  SortMemberPath="DisplayName">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding DisplayName}" IsReadOnly="True"
+                         BorderThickness="0" Background="Transparent" Padding="0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- Dưới cùng -->
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,10,0,0">
+            <ProgressBar x:Name="progressBar" Height="18" Minimum="0" Maximum="100" Value="0"
+                   Visibility="Collapsed" Foreground="Goldenrod" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button x:Name="btnNumbering" Content="Numbering" Width="90" Margin="0,0,10,0"
+                Click="btnNumbering_Click"/>
+                <Button Content="Apply" Width="70" Margin="0,0,10,0" Click="Apply_Click"/>
+                <Button Content="OK" Width="70" Margin="0,0,10,0"
+                Click="Ok_Click"  />
+                <Button Content="Cancel" Width="70" Click="Cancel_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>

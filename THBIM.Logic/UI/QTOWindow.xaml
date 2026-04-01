@@ -1,0 +1,249 @@
+﻿<Window x:Class="THBIM.UI.QTOWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mechanical QTO"
+        Height="900" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#D49A6A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E5AA7A"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderBrush" Value="#DDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="5" Padding="10,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="GroupBox">
+            <Setter Property="BorderBrush" Value="#D49A6A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" FontWeight="Bold" Foreground="#D49A6A" Margin="5,0,5,0"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#D49A6A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="RightAlignCell" TargetType="DataGridCell">
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+            <Setter Property="Padding" Value="0,0,5,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/> <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>   </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="White" CornerRadius="10">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="320" ShadowDepth="0" Opacity="0.1" BlurRadius="10"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="#D49A6A" CornerRadius="10,10,0,0" Padding="15">
+                    <TextBlock Text="Settings &amp; Selection" Foreground="White" FontWeight="Bold" FontSize="16"/>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
+                    <StackPanel>
+                        <TextBlock Text="1. System Type" FontWeight="Bold" Foreground="#666" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <RadioButton x:Name="rbPiping" Content="Piping" IsChecked="True" 
+                                         FontWeight="Bold" GroupName="SystemType" Margin="0,0,30,0" Checked="Radio_Checked">
+                                <RadioButton.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </RadioButton.LayoutTransform>
+                            </RadioButton>
+
+                            <RadioButton x:Name="rbDucting" Content="Ducting" 
+                                         FontWeight="Bold" GroupName="SystemType" Checked="Radio_Checked">
+                                <RadioButton.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </RadioButton.LayoutTransform>
+                            </RadioButton>
+                        </StackPanel>
+
+                        <TextBlock Text="2. Length Unit" FontWeight="Bold" Foreground="#666" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="cbLengthUnit" Height="30" Margin="0,0,0,15" SelectionChanged="LengthUnit_Changed" FontWeight="SemiBold">
+                            <ComboBoxItem Content="mm" IsSelected="True"/>
+                            <ComboBoxItem Content="m"/>
+                            <ComboBoxItem Content="inch"/>
+                        </ComboBox>
+
+                        <TextBlock Text="3. Filter Systems" FontWeight="Bold" Foreground="#666" Margin="0,0,0,5"/>
+                        <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="5" Height="300">
+                            <DataGrid x:Name="SystemGrid" AutoGenerateColumns="False" HeadersVisibility="Column" 
+                                      BorderThickness="0" Background="White" GridLinesVisibility="Horizontal"
+                                      CanUserAddRows="False" SelectionChanged="OnGridSelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="40" Header="">
+                                       
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Click="OnSystemCheckBoxClick"/> </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    
+                                    <DataGridTextColumn Binding="{Binding SystemName}" Header="System Name"  IsReadOnly="True" Width="*"/>
+                                    
+                                    
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Margin="15,0,15,15">
+                    <Button Content="SELECT BY RECTANGLE" Style="{StaticResource SecondaryButtonStyle}" Height="40" Click="OnSelectByRectangleClick"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+
+        <Border Grid.Column="2" Background="White" CornerRadius="10">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="320" ShadowDepth="0" Opacity="0.1" BlurRadius="10"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="#D49A6A" CornerRadius="10,10,0,0" Padding="15">
+                    <TextBlock Text="Bill of Quantities (BOQ)" Foreground="White" FontWeight="Bold" FontSize="16"/>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
+                    <StackPanel>
+                        
+                        <GroupBox x:Name="PipeGroup" Header="PIPES">
+                            <DataGrid x:Name="PipeGrid" AutoGenerateColumns="False" HeadersVisibility="Column" Height="200" IsReadOnly="True" 
+                                      SelectionChanged="OnGridSelectionChanged" CanUserAddRows="False" GridLinesVisibility="Horizontal" Background="White">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="System" Binding="{Binding SystemName}" Width="150"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="*"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding Diameter}" Width="80"/>
+                                    <DataGridTextColumn Header="Length" Binding="{Binding Length, StringFormat=N2}" Width="80" CellStyle="{StaticResource RightAlignCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+
+                        <GroupBox x:Name="DuctGroup" Header="DUCTS" Visibility="Collapsed">
+                             <DataGrid x:Name="DuctGrid" AutoGenerateColumns="False" HeadersVisibility="Column" Height="200" IsReadOnly="True" 
+                                      SelectionChanged="OnGridSelectionChanged" CanUserAddRows="False" GridLinesVisibility="Horizontal" Background="White">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="System" Binding="{Binding SystemName}" Width="150"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="*"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="100"/>
+                                    <DataGridTextColumn Header="Length" Binding="{Binding Length, StringFormat=N2}" Width="80" CellStyle="{StaticResource RightAlignCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+
+                        <GroupBox Header="FITTINGS &amp; ACCESSORIES">
+                            <DataGrid x:Name="FittingGrid" AutoGenerateColumns="False" HeadersVisibility="Column" Height="180" IsReadOnly="True" 
+                                      SelectionChanged="OnGridSelectionChanged" CanUserAddRows="False" GridLinesVisibility="Horizontal" Background="White">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100"/>
+                                    <DataGridTextColumn Header="Family" Binding="{Binding FamilyName}" Width="150"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="*"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="80"/>
+                                    <DataGridTextColumn Header="Count" Binding="{Binding Count, StringFormat=N0}" Width="60" CellStyle="{StaticResource RightAlignCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+
+                        <GroupBox Header="INSULATION">
+                            <DataGrid x:Name="InsulationGrid" AutoGenerateColumns="False" HeadersVisibility="Column" Height="150" IsReadOnly="True" 
+                                      SelectionChanged="OnGridSelectionChanged" CanUserAddRows="False" GridLinesVisibility="Horizontal" Background="White">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="System" Binding="{Binding SystemName}" Width="150"/>
+                                    <DataGridTextColumn Header="Host Size" Binding="{Binding Diameter}" Width="100"/>
+                                    <DataGridTextColumn Header="Thick." Binding="{Binding InsulationThickness}" Width="80"/>
+                                    <DataGridTextColumn Header="Length" Binding="{Binding Length, StringFormat=N2}" Width="80" CellStyle="{StaticResource RightAlignCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15">
+                    <Button Content="REFRESH DATA" Style="{StaticResource SecondaryButtonStyle}" Width="120" Margin="0,0,10,0" Click="OnThongKeClick"/>
+                    <Button Content="EXPORT EXCEL" Style="{StaticResource MainButtonStyle}" Width="150" Height="40" Click="OnExportExcelClick"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,65 @@
+﻿<Window x:Class="THBIM.ParameterSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Schedule Properties" Height="500" Width="700"
+        WindowStartupLocation="CenterOwner" Background="#F5F5F5" 
+        FontFamily="Segoe UI" FontSize="12">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Select fields to schedule (in order):" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="50"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0">
+                <TextBlock Text="Available fields:" DockPanel.Dock="Top" Margin="0,0,0,5"/>
+
+                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Top" Margin="0,0,0,5" Height="24" VerticalContentAlignment="Center" BorderBrush="#AAA"/>
+
+                <ListBox ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedAvailableField}" BorderBrush="#AAA" Padding="2"/>
+            </DockPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Button Width="32" Height="26" Margin="0,0,0,10" Command="{Binding AddCommand}" ToolTip="Add parameter(s)">
+                    <TextBlock Text="➔" FontSize="14" Foreground="#1E8449" FontWeight="Bold"/>
+                </Button>
+                <Button Width="32" Height="26" Command="{Binding RemoveCommand}" ToolTip="Remove parameter(s)">
+                    <TextBlock Text="←" FontSize="16" Foreground="#C0392B" FontWeight="Bold"/>
+                </Button>
+            </StackPanel>
+
+            <DockPanel Grid.Column="2">
+                <TextBlock Text="Scheduled fields (in order):" DockPanel.Dock="Top" Margin="0,0,0,5"/>
+
+                <Border DockPanel.Dock="Top" Height="24" Margin="0,0,0,5" Background="Transparent"/>
+
+                <ListBox ItemsSource="{Binding ScheduledFields}" SelectedItem="{Binding SelectedScheduledField}" BorderBrush="#AAA" Padding="2"/>
+            </DockPanel>
+
+            <StackPanel Grid.Column="3" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,10">
+                <Button Width="28" Height="28" Margin="0,0,0,5" Command="{Binding MoveUpCommand}" ToolTip="Move Up">
+                    <TextBlock Text="↑" FontSize="16" FontWeight="Bold"/>
+                </Button>
+                <Button Width="28" Height="28" Margin="0,0,0,10" Command="{Binding MoveDownCommand}" ToolTip="Move Down">
+                    <TextBlock Text="↓" FontSize="16" FontWeight="Bold"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="OK" Width="85" Height="28" Margin="0,0,10,0" Click="BtnOK_Click" Background="#D9A566" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+            <Button Content="Cancel" Width="85" Height="28" IsCancel="True" Background="#E1E1E1" BorderBrush="#ADADAD" BorderThickness="1"/>
+        </StackPanel>
+    </Grid>
+</Window>

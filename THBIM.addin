@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+    <AddIn Type="Application">
+        <Name>THBIM Tools</Name>
+        <Assembly>TH Tools\THBIM.dll</Assembly>
+        <AddInId>B28C6442-9985-484F-9314-E8504B768239</AddInId>
+        <FullClassName>THBIM.Loader.LoaderApp</FullClassName>
+        <VendorId>THBIM</VendorId>
+        <VendorDescription>THBIM Tools for Structural Engineering</VendorDescription>
+    </AddIn>
+</RevitAddIns>
